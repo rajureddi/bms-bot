@@ -110,52 +110,33 @@ export const getWebAppHtml = (): string => `<!DOCTYPE html>
     </div>
   </div>
 
-  <!-- Date Selection Slider -->
+  <!-- Dynamic Date Selection Section -->
   <div class="px-4 pt-3">
     <div class="flex items-center justify-between mb-2">
-      <h2 class="text-xs font-bold uppercase tracking-wider text-gray-400">2. Select Date</h2>
-      <span class="text-[11px] bms-red-text font-bold" id="selectedDateLabel">17 Dec (Advance Open)</span>
+      <div class="flex items-center space-x-2">
+        <h2 class="text-xs font-bold uppercase tracking-wider text-gray-400">2. Select Date</h2>
+        <span class="text-[11px] bms-red-text font-bold" id="selectedDateLabel">Select Date</span>
+      </div>
+      <!-- Native Calendar Date Picker -->
+      <label class="flex items-center space-x-1.5 text-[11px] font-bold px-2.5 py-1 rounded-lg bg-[#242833] border border-[#2D313D] text-gray-200 cursor-pointer hover:border-[#F84464] active:scale-95 transition shadow-sm">
+        <i class="fa-regular fa-calendar-days text-[#F84464]"></i>
+        <span>Calendar</span>
+        <input type="date" id="calendarPicker" class="sr-only" onchange="pickCalendarDate(this.value)">
+      </label>
     </div>
+
+    <!-- Quick Date Filter Chips -->
+    <div class="flex items-center space-x-1.5 mb-2.5 overflow-x-auto no-scrollbar text-[11px]">
+      <button type="button" class="date-chip px-2.5 py-0.5 rounded-full bg-[#242833] text-gray-300 font-semibold border border-[#2D313D] hover:border-gray-500 whitespace-nowrap active:bg-[#F84464]" onclick="filterDateRange('today')">Today</button>
+      <button type="button" class="date-chip px-2.5 py-0.5 rounded-full bg-[#242833] text-gray-300 font-semibold border border-[#2D313D] hover:border-gray-500 whitespace-nowrap active:bg-[#F84464]" onclick="filterDateRange('this_week')">This Week</button>
+      <button type="button" class="date-chip px-2.5 py-0.5 rounded-full bg-[#242833] text-gray-300 font-semibold border border-[#2D313D] hover:border-gray-500 whitespace-nowrap active:bg-[#F84464]" onclick="filterDateRange('next_week')">Next Week</button>
+      <button type="button" class="date-chip px-2.5 py-0.5 rounded-full bg-[#242833] text-gray-300 font-semibold border border-[#2D313D] hover:border-gray-500 whitespace-nowrap active:bg-[#F84464]" onclick="filterDateRange('december')">December (Advance)</button>
+      <button type="button" class="date-chip px-2.5 py-0.5 rounded-full bg-[#242833] text-gray-300 font-semibold border border-[#2D313D] hover:border-gray-500 whitespace-nowrap active:bg-[#F84464]" onclick="filterDateRange('all')">View All (60 Days)</button>
+    </div>
+
+    <!-- Dynamically Rendered Date Strip -->
     <div class="flex space-x-2 overflow-x-auto no-scrollbar pb-1" id="datePillContainer">
-      <!-- 17 Dec (Advance Booking) -->
-      <button class="date-pill flex-shrink-0 px-3.5 py-2 rounded-xl bms-red text-white flex flex-col items-center justify-center font-bold text-xs shadow-md border-2 border-white/20"
-        data-date="17" data-month="Dec" onclick="selectDate(this)">
-        <span class="text-[9px] uppercase font-semibold text-rose-200">ADVANCE</span>
-        <span class="text-base font-black">17</span>
-        <span class="text-[9px] uppercase font-bold text-yellow-300">DEC</span>
-      </button>
-
-      <!-- Today -->
-      <button class="date-pill flex-shrink-0 px-3 py-2 rounded-xl bg-[#1A1D24] border border-[#2D313D] text-gray-300 flex flex-col items-center justify-center text-xs font-semibold"
-        data-date="18" data-month="Nov" onclick="selectDate(this)">
-        <span class="text-[9px] uppercase text-gray-400">TODAY</span>
-        <span class="text-base font-bold text-white">18</span>
-        <span class="text-[9px] uppercase text-gray-400">NOV</span>
-      </button>
-
-      <!-- 19 Nov -->
-      <button class="date-pill flex-shrink-0 px-3 py-2 rounded-xl bg-[#1A1D24] border border-[#2D313D] text-gray-300 flex flex-col items-center justify-center text-xs font-semibold"
-        data-date="19" data-month="Nov" onclick="selectDate(this)">
-        <span class="text-[9px] uppercase text-gray-400">THU</span>
-        <span class="text-base font-bold text-white">19</span>
-        <span class="text-[9px] uppercase text-gray-400">NOV</span>
-      </button>
-
-      <!-- 20 Nov -->
-      <button class="date-pill flex-shrink-0 px-3 py-2 rounded-xl bg-[#1A1D24] border border-[#2D313D] text-gray-300 flex flex-col items-center justify-center text-xs font-semibold"
-        data-date="20" data-month="Nov" onclick="selectDate(this)">
-        <span class="text-[9px] uppercase text-gray-400">FRI</span>
-        <span class="text-base font-bold text-white">20</span>
-        <span class="text-[9px] uppercase text-gray-400">NOV</span>
-      </button>
-
-      <!-- 21 Nov -->
-      <button class="date-pill flex-shrink-0 px-3 py-2 rounded-xl bg-[#1A1D24] border border-[#2D313D] text-gray-300 flex flex-col items-center justify-center text-xs font-semibold"
-        data-date="21" data-month="Nov" onclick="selectDate(this)">
-        <span class="text-[9px] uppercase text-gray-400">SAT</span>
-        <span class="text-base font-bold text-white">21</span>
-        <span class="text-[9px] uppercase text-gray-400">NOV</span>
-      </button>
+      <!-- Populated dynamically via initDateStrip() -->
     </div>
   </div>
 
@@ -377,12 +358,14 @@ export const getWebAppHtml = (): string => `<!DOCTYPE html>
       city: 'hyderabad',
       cityLabel: 'Hyderabad',
       movie: 'Avengers: Doomsday',
-      theatre: 'Prasads Multiplex',
+      theatre: 'Prasads Multiplex: Hyderabad',
       date: '17',
       month: 'Dec',
+      fullDate: null,
       time: 'Any Time',
       seatCount: 2,
-      category: 'PRIME'
+      category: 'PRIME',
+      screen: 'PCX'
     };
 
     if (tg) {
@@ -402,10 +385,11 @@ export const getWebAppHtml = (): string => `<!DOCTYPE html>
 
     function updateSummary() {
       document.getElementById('summaryMovie').innerText = state.movie;
+      var dateDisplay = state.date === 'any' ? 'Any Date' : (state.date + ' ' + state.month);
       document.getElementById('summaryDetails').innerText = 
-        \`\${state.theatre} • \${state.date} \${state.month} • \${state.time} • \${state.seatCount} Seats\`;
-      document.getElementById('selectedDateLabel').innerText = \`\${state.date} \${state.month}\`;
-      document.getElementById('seatCountDisplay').innerText = \`\${state.seatCount} Seats (\${state.category})\`;
+        state.theatre + ' • ' + dateDisplay + ' • ' + state.time + ' • ' + state.seatCount + ' Seats';
+      document.getElementById('selectedDateLabel').innerText = dateDisplay;
+      document.getElementById('seatCountDisplay').innerText = state.seatCount + ' Seats (' + state.category + ')';
     }
 
     function selectMovie(el) {
@@ -420,15 +404,146 @@ export const getWebAppHtml = (): string => `<!DOCTYPE html>
       updateSummary();
     }
 
-    function selectDate(el) {
+    // Dynamic Date Strip Generation (No Hardcoded Dates)
+    function initDateStrip() {
+      var container = document.getElementById('datePillContainer');
+      if (!container) return;
+      container.innerHTML = '';
+
+      // 1. Any Date Option
+      var anyPill = document.createElement('button');
+      anyPill.type = 'button';
+      anyPill.className = 'date-pill flex-shrink-0 px-3.5 py-2 rounded-xl bg-[#1A1D24] border border-[#2D313D] text-gray-300 flex flex-col items-center justify-center text-xs font-semibold cursor-pointer hover:border-gray-500 transition';
+      anyPill.setAttribute('data-date', 'any');
+      anyPill.setAttribute('data-month', '');
+      anyPill.innerHTML = '<span class="text-[9px] uppercase text-gray-400">ANY</span>' +
+        '<span class="text-base font-bold text-white"><i class="fa-solid fa-infinity text-xs text-yellow-300"></i></span>' +
+        '<span class="text-[9px] uppercase text-gray-400">DATE</span>';
+      anyPill.onclick = function() { selectDate(anyPill, 'any', 'Any Date', null); };
+      container.appendChild(anyPill);
+
+      var today = new Date();
+      var monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      var dayNames = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
+
+      // Generate next 60 days dynamically from real clock
+      for (var i = 0; i < 60; i++) {
+        var d = new Date(today);
+        d.setDate(today.getDate() + i);
+
+        var dayNum = d.getDate().toString();
+        var monthStr = monthNames[d.getMonth()];
+        var dayOfWeek = i === 0 ? 'TODAY' : (i === 1 ? 'TMRW' : dayNames[d.getDay()]);
+        var mNum = (d.getMonth() + 1 < 10 ? '0' : '') + (d.getMonth() + 1);
+        var dtNum = (d.getDate() < 10 ? '0' : '') + d.getDate();
+        var yyyymmdd = d.getFullYear() + '-' + mNum + '-' + dtNum;
+
+        var isDefault = (monthStr === 'Dec' && (dayNum === '17' || dayNum === '18')) || (i === 0 && state.month !== 'Dec');
+
+        var pill = document.createElement('button');
+        pill.type = 'button';
+        pill.id = 'date-pill-' + yyyymmdd;
+        pill.setAttribute('data-date', dayNum);
+        pill.setAttribute('data-month', monthStr);
+        pill.setAttribute('data-full-date', yyyymmdd);
+        pill.className = 'date-pill flex-shrink-0 px-3.5 py-2 rounded-xl ' +
+          (isDefault ? 'bms-red text-white shadow-md border-2 border-white/20' : 'bg-[#1A1D24] border border-[#2D313D] text-gray-300') +
+          ' flex flex-col items-center justify-center text-xs font-semibold cursor-pointer hover:border-gray-500 transition';
+
+        pill.innerHTML = '<span class="text-[9px] uppercase ' + (isDefault ? 'text-white/80 font-bold' : 'text-gray-400') + '">' + dayOfWeek + '</span>' +
+          '<span class="text-base font-bold text-white">' + dayNum + '</span>' +
+          '<span class="text-[9px] uppercase font-bold ' + (isDefault ? 'text-yellow-300' : 'text-gray-400') + '">' + monthStr + '</span>';
+
+        (function(targetPill, targetDay, targetMonth, targetYmd) {
+          targetPill.onclick = function() { selectDate(targetPill, targetDay, targetMonth, targetYmd); };
+        })(pill, dayNum, monthStr, yyyymmdd);
+
+        container.appendChild(pill);
+
+        if (isDefault && !state.fullDate) {
+          state.date = dayNum;
+          state.month = monthStr;
+          state.fullDate = yyyymmdd;
+        }
+      }
+    }
+
+    function selectDate(el, day, month, fullDate) {
       triggerHaptic('light');
       document.querySelectorAll('.date-pill').forEach(b => {
-        b.className = 'date-pill flex-shrink-0 px-3 py-2 rounded-xl bg-[#1A1D24] border border-[#2D313D] text-gray-300 flex flex-col items-center justify-center text-xs font-semibold';
+        b.className = 'date-pill flex-shrink-0 px-3.5 py-2 rounded-xl bg-[#1A1D24] border border-[#2D313D] text-gray-300 flex flex-col items-center justify-center text-xs font-semibold cursor-pointer hover:border-gray-500 transition';
       });
-      el.className = 'date-pill flex-shrink-0 px-3.5 py-2 rounded-xl bms-red text-white flex flex-col items-center justify-center font-bold text-xs shadow-md border-2 border-white/20';
-      state.date = el.getAttribute('data-date');
-      state.month = el.getAttribute('data-month');
+      el.className = 'date-pill flex-shrink-0 px-3.5 py-2 rounded-xl bms-red text-white flex flex-col items-center justify-center font-bold text-xs shadow-md border-2 border-white/20 cursor-pointer';
+      
+      state.date = day;
+      state.month = month;
+      state.fullDate = fullDate;
       updateSummary();
+    }
+
+    // Pick date from native calendar
+    function pickCalendarDate(val) {
+      if (!val) return;
+      triggerHaptic('medium');
+      var parts = val.split('-');
+      var monthIdx = parseInt(parts[1], 10) - 1;
+      var day = parseInt(parts[2], 10).toString();
+      var monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      var monthStr = monthNames[monthIdx];
+
+      state.date = day;
+      state.month = monthStr;
+      state.fullDate = val;
+
+      document.querySelectorAll('.date-pill').forEach(b => {
+        b.className = 'date-pill flex-shrink-0 px-3.5 py-2 rounded-xl bg-[#1A1D24] border border-[#2D313D] text-gray-300 flex flex-col items-center justify-center text-xs font-semibold cursor-pointer hover:border-gray-500 transition';
+      });
+
+      var existingPill = document.getElementById('date-pill-' + val);
+      if (!existingPill) {
+        var container = document.getElementById('datePillContainer');
+        existingPill = document.createElement('button');
+        existingPill.type = 'button';
+        existingPill.id = 'date-pill-' + val;
+        existingPill.setAttribute('data-date', day);
+        existingPill.setAttribute('data-month', monthStr);
+        existingPill.setAttribute('data-full-date', val);
+        existingPill.innerHTML = '<span class="text-[9px] uppercase text-rose-200 font-bold">PICKED</span>' +
+          '<span class="text-base font-bold text-white">' + day + '</span>' +
+          '<span class="text-[9px] uppercase font-bold text-yellow-300">' + monthStr + '</span>';
+        (function(customPill, cDay, cMonth, cVal) {
+          customPill.onclick = function() { selectDate(customPill, cDay, cMonth, cVal); };
+        })(existingPill, day, monthStr, val);
+        container.insertBefore(existingPill, container.children[1] || null);
+      }
+
+      existingPill.className = 'date-pill flex-shrink-0 px-3.5 py-2 rounded-xl bms-red text-white flex flex-col items-center justify-center font-bold text-xs shadow-md border-2 border-white/20 cursor-pointer';
+      existingPill.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+
+      updateSummary();
+    }
+
+    // Filter range jumping
+    function filterDateRange(range) {
+      triggerHaptic('light');
+      const container = document.getElementById('datePillContainer');
+      if (!container) return;
+
+      if (range === 'today' || range === 'all') {
+        container.scrollTo({ left: 0, behavior: 'smooth' });
+      } else if (range === 'this_week') {
+        const firstPill = container.children[1];
+        if (firstPill) firstPill.scrollIntoView({ behavior: 'smooth', inline: 'start' });
+      } else if (range === 'next_week') {
+        const nextWeekPill = container.children[8];
+        if (nextWeekPill) nextWeekPill.scrollIntoView({ behavior: 'smooth', inline: 'start' });
+      } else if (range === 'december') {
+        const decPill = Array.from(container.querySelectorAll('.date-pill')).find(p => p.getAttribute('data-month') === 'Dec');
+        if (decPill) {
+          decPill.scrollIntoView({ behavior: 'smooth', inline: 'start' });
+          decPill.click();
+        }
+      }
     }
 
     function selectShowtime(el, theatreName) {
@@ -506,9 +621,12 @@ export const getWebAppHtml = (): string => `<!DOCTYPE html>
         city: state.city,
         theatre: state.theatre,
         date: state.date,
+        month: state.month,
+        fullDate: state.fullDate,
         time: state.time === 'Any Time' ? undefined : state.time,
         seatCount: state.seatCount,
         category: state.category,
+        screen: state.screen || 'PCX',
         telegramUserId: currentTelegramId ? String(currentTelegramId) : null
       };
 
@@ -531,6 +649,7 @@ export const getWebAppHtml = (): string => `<!DOCTYPE html>
       }
     }
 
+    initDateStrip();
     updateSummary();
   </script>
 </body>

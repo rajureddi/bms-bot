@@ -48,6 +48,7 @@ export async function createServer(): Promise<FastifyInstance> {
         theatre?: string;
         date?: string;
         month?: string;
+        fullDate?: string;
         time?: string;
         seatCount?: number;
         category?: string;
@@ -87,16 +88,24 @@ export async function createServer(): Promise<FastifyInstance> {
       const user = await userService.getOrCreate(telegramId);
 
       const now = new Date();
-      // For December releases (like Avengers Doomsday Dec 17/18), watch through Dec 19
+      let preferredDates: string[] | undefined;
       let watchUntil: Date;
-      if (movieName.toLowerCase().includes('avengers') || body.month === 'Dec' || date === '17' || date === '18') {
+
+      if (date === 'any' || !date) {
+        preferredDates = undefined;
+        watchUntil = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+      } else if (body.fullDate) {
+        preferredDates = [date];
+        const parsed = new Date(body.fullDate);
+        parsed.setHours(23, 59, 59, 999);
+        watchUntil = parsed > now ? parsed : new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+      } else if (date === '17' || date === '18' || body.month === 'Dec' || movieName.toLowerCase().includes('avengers')) {
+        preferredDates = (date === '17' || date === '18') ? ['17', '18'] : [date];
         watchUntil = new Date(2026, 11, 19, 23, 59, 59);
       } else {
+        preferredDates = [date];
         watchUntil = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
       }
-
-      // Check both 17 and 18 for advance bookings
-      const preferredDates = (date === '17' || date === '18') ? ['17', '18'] : [date];
 
       const job = await jobService.createJob({
         userId: user.id,
@@ -139,7 +148,7 @@ export async function createServer(): Promise<FastifyInstance> {
           `City: *${city}*\n` +
           `Theatre: *${theatre}*\n` +
           `Target Screen: *${preferredScreens.join(', ')} (Large Screen)*\n` +
-          `Target Dates: *${preferredDates.join(' & ')} Dec 2026*\n` +
+          `Target Dates: *${preferredDates && preferredDates.length > 0 ? preferredDates.join(' & ') : 'Any Date'}*\n` +
           `Time: *${time || 'Any Time (First Available)'}*\n` +
           `Seats: *${seatCount} Seats (Center & Adjacent)*\n` +
           (directUrl ? `Direct BMS Link: [BookMyShow](${directUrl})\n\n` : `\n`) +

@@ -53,16 +53,14 @@ export function dateKeyboard(selectedDates: string[] = [], offsetDays = 0): Inli
   const kb = new InlineKeyboard();
   const today = new Date();
 
-  // Quick advance buttons for Avengers / December bookings
-  const is17 = selectedDates.includes('17');
-  const is18 = selectedDates.includes('18');
-  kb.text(`${is17 ? '✓ ' : ''}17 Dec`, 'date:toggle:17')
-    .text(`${is18 ? '✓ ' : ''}18 Dec`, 'date:toggle:18')
-    .text('Both 17 & 18 Dec', 'date:both:17:18')
+  // Jump shortcuts: This Week, Next Week, In 1 Month
+  kb.text('This Week', 'date:page:0')
+    .text('Next Week', 'date:page:7')
+    .text('+1 Month', 'date:page:30')
     .row();
 
-  // Generate 7 days starting from offsetDays
-  for (let i = 0; i < 7; i++) {
+  // Generate 8 days starting from offsetDays
+  for (let i = 0; i < 8; i++) {
     const date = new Date(today);
     date.setDate(today.getDate() + offsetDays + i);
     const day = date.getDate().toString();
@@ -75,12 +73,11 @@ export function dateKeyboard(selectedDates: string[] = [], offsetDays = 0): Inli
   }
 
   // Week navigation row
-  kb.row();
   if (offsetDays > 0) {
-    kb.text('◀ Prev Week', `date:page:${Math.max(0, offsetDays - 7)}`);
+    kb.text('◀ Prev', `date:page:${Math.max(0, offsetDays - 7)}`);
   }
-  if (offsetDays < 60) {
-    kb.text('Next Week ▶', `date:page:${offsetDays + 7}`);
+  if (offsetDays < 90) {
+    kb.text('Next ▶', `date:page:${offsetDays + 7}`);
   }
 
   kb.row()
