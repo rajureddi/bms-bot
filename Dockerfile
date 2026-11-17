@@ -40,4 +40,4 @@ RUN npx playwright install chromium
 RUN useradd -m appuser && chown -R appuser:appuser /app
 USER appuser
 
-CMD ["node", "dist/index.js"]
+CMD ["sh", "-c", "npx prisma db push --skip-generate && node dist/index.js"]
