@@ -180,16 +180,29 @@ export async function processWatchJob(job: Job<WatchJobData>): Promise<WatchResu
   // Check if watch window has expired
   const now = new Date();
   if (now > bookingJob.watchUntilDate) {
-    logger.info('Job watch window expired', { jobId, watchUntilDate: bookingJob.watchUntilDate });
-    await jobService.updateJobResult(jobId, JobStatus.FAILED, {
-      error: 'Watch window expired',
-    });
-    await notificationService.notify(bookingJob.user.telegramId, {
-      type: 'job_expired',
-      jobId,
-      movieName: bookingJob.movieName,
-    });
-    return { ticketsFound: false, error: 'Watch window expired' };
+    const prefs = bookingJob.showtimePrefs as any;
+    // Auto-extend for future releases (like Avengers: Doomsday in December)
+    if (bookingJob.movieName.toLowerCase().includes('avengers') || prefs?.preferredDates?.some((d: string) => d.includes('17') || d.includes('18'))) {
+      const extendedUntil = new Date(2026, 11, 19, 23, 59, 59);
+      const { prisma } = await import('../../db/client.js');
+      await prisma.bookingJob.update({
+        where: { id: jobId },
+        data: { watchUntilDate: extendedUntil },
+      });
+      bookingJob.watchUntilDate = extendedUntil;
+      logger.info('Auto-extended watch window for advance December booking', { jobId, watchUntilDate: extendedUntil });
+    } else {
+      logger.info('Job watch window expired', { jobId, watchUntilDate: bookingJob.watchUntilDate });
+      await jobService.updateJobResult(jobId, JobStatus.FAILED, {
+        error: 'Watch window expired',
+      });
+      await notificationService.notify(bookingJob.user.telegramId, {
+        type: 'job_expired',
+        jobId,
+        movieName: bookingJob.movieName,
+      });
+      return { ticketsFound: false, error: 'Watch window expired' };
+    }
   }
 
   // Update status to WATCHING if it was PENDING
@@ -209,182 +222,147 @@ export async function processWatchJob(job: Job<WatchJobData>): Promise<WatchResu
     const context = await createContext(browser);
     const page = await createPage(context);
 
-    // Navigate to movie page
-    const homePage = new HomePage(page);
-    await homePage.navigate(bookingJob.city);
-
-    // Search for the movie
-    const movieFound = await homePage.clickMovieCard(bookingJob.movieName);
-    if (!movieFound) {
-      await homePage.searchMovie(bookingJob.movieName);
-      const selected = await homePage.selectMovieFromSearch(bookingJob.movieName);
-      if (!selected) {
-        logger.info('Movie not found on BMS', { jobId, movieName: bookingJob.movieName });
-        return { ticketsFound: false, error: 'Movie not found' };
-      }
-    }
-
-    // Click book tickets button
-    await homePage.clickBookTickets();
-
-    // Handle language/format dialog if it appears
-    const showtimePrefs = bookingJob.showtimePrefs as {
+    const showtimePrefs = (bookingJob.showtimePrefs || {}) as {
       preferredDates?: string[];
       preferredTimes?: string[];
       preferredFormats?: string[];
       preferredLanguages?: string[];
       preferredScreens?: string[];
+      directUrl?: string;
     };
-    await homePage.handleLanguageFormatDialog(
-      showtimePrefs.preferredLanguages,
-      showtimePrefs.preferredFormats
-    );
 
-    // Check showtimes page
-    const showtimesPage = new ShowtimesPage(page);
+    // If direct BMS URL is specified, or for Avengers Doomsday in Hyderabad, navigate directly
+    let directUrl = showtimePrefs.directUrl;
+    if (!directUrl && bookingJob.movieName.toLowerCase().includes('avengers') && bookingJob.city.toLowerCase() === 'hyderabad') {
+      const defaultDate = showtimePrefs.preferredDates?.[0]?.replace(/\D/g, '') || '17';
+      directUrl = `https://in.bookmyshow.com/movies/hyderabad/avengers-doomsday/buytickets/ET00526320/202612${defaultDate.padStart(2, '0')}?etCodes=*&language=english&refEventCode=ET00526320`;
+    }
 
-    // Wait a bit longer for page to fully load
-    await page.waitForTimeout(3000);
+    let showtimesPage: ShowtimesPage;
+
+    if (directUrl) {
+      logger.info('Navigating directly to BookMyShow showtimes URL', { jobId, directUrl });
+      await page.goto(directUrl, { waitUntil: 'domcontentloaded', timeout: 35000 });
+      await page.waitForTimeout(2000);
+      showtimesPage = new ShowtimesPage(page);
+    } else {
+      // Navigate to movie page
+      const homePage = new HomePage(page);
+      await homePage.navigate(bookingJob.city);
+
+      // Search for the movie
+      const movieFound = await homePage.clickMovieCard(bookingJob.movieName);
+      if (!movieFound) {
+        await homePage.searchMovie(bookingJob.movieName);
+        const selected = await homePage.selectMovieFromSearch(bookingJob.movieName);
+        if (!selected) {
+          logger.info('Movie not found on BMS', { jobId, movieName: bookingJob.movieName });
+          return { ticketsFound: false, error: 'Movie not found' };
+        }
+      }
+
+      // Click book tickets button
+      await homePage.clickBookTickets();
+
+      // Handle language/format dialog if it appears
+      await homePage.handleLanguageFormatDialog(
+        showtimePrefs.preferredLanguages,
+        showtimePrefs.preferredFormats
+      );
+
+      showtimesPage = new ShowtimesPage(page);
+      await page.waitForTimeout(2000);
+    }
 
     // Save debug info before checking showtimes
     await saveDebugInfo(page, jobId, 'before-showtime-check');
 
-    const hasShowtimes = await showtimesPage.waitForShowtimes();
+    // Dates to check: prioritize user preferred dates or default to 17 & 18 for advance releases
+    const targetDates = (showtimePrefs.preferredDates && showtimePrefs.preferredDates.length > 0)
+      ? showtimePrefs.preferredDates
+      : (bookingJob.movieName.toLowerCase().includes('avengers') ? ['17', '18'] : []);
 
-    if (!hasShowtimes) {
-      logger.info('No showtimes available', { jobId, movieName: bookingJob.movieName });
-      // Save additional debug info when no showtimes found
-      await saveDebugInfo(page, jobId, 'no-showtimes-found');
+    const datesToCheck = targetDates.length > 0 ? targetDates : [undefined];
 
-      await context.close();
-      await browser.close();
-      return { ticketsFound: false };
-    }
-
-    // Select the preferred date if provided
-    if (showtimePrefs.preferredDates?.[0]) {
-      const dateSelected = await showtimesPage.selectDateByDay(showtimePrefs.preferredDates[0]);
-      if (dateSelected) {
-        logger.info('Date selected', { date: showtimePrefs.preferredDates[0] });
-        await saveDebugInfo(page, jobId, 'after-date-selection');
-        // Wait for showtimes to refresh after date selection
-        await page.waitForTimeout(2000);
-      } else {
-        logger.warn('Could not select preferred date', { date: showtimePrefs.preferredDates[0] });
-      }
-    }
-
-    // Try each preferred theatre
-    for (const theatre of bookingJob.theatres) {
-      const found = await showtimesPage.selectTheatreShowtime(
-        theatre,
-        showtimePrefs.preferredTimes || []
-      );
-
-      if (found) {
-        logger.info('Tickets found!', {
-          jobId,
-          movieName: bookingJob.movieName,
-          theatre,
-        });
-
-        // Update job status to BOOKING
-        await jobService.updateJobStatus(jobId, JobStatus.BOOKING);
-
-        // Notify user
-        await notificationService.notify(bookingJob.user.telegramId, {
-          type: 'tickets_found',
-          jobId,
-          movieName: bookingJob.movieName,
-          theatre,
-        });
-
-        // Add to booking queue
-        logger.info('Adding job to booking queue', { jobId });
-        await bookingQueue.add(
-          `booking-${jobId}`,
-          { jobId },
-          { jobId: `booking-${jobId}` }
-        );
-        logger.info('Job added to booking queue', { jobId });
-
-        await context.close();
-        await browser.close();
-
-        return {
-          ticketsFound: true,
-          theatre,
-        };
-      }
-    }
-
-    // No tickets found in preferred theatres - scrape available options
-    const availableOptions = await showtimesPage.scrapeAvailableOptions();
-
-    // Check if any preferences match
-    const showtimePrefsTyped = showtimePrefs as {
-      preferredFormats?: string[];
-      preferredLanguages?: string[];
-      preferredScreens?: string[];
-      preferredTimes?: string[];
-    };
-
-    const matchResult = checkPreferenceMatch(showtimePrefsTyped, availableOptions.options);
-
-    if (!matchResult.matched && availableOptions.options.length > 0) {
-      // Save screenshot for notification
-      const screenshotPath = `${DEBUG_DIR}/${jobId}-mismatch-${Date.now()}.png`;
-      await page.screenshot({ path: screenshotPath, fullPage: true });
-
-      // Set job to awaiting input
-      await jobService.setAwaitingInput(
-        jobId,
-        matchResult.mismatchType || 'unknown',
-        availableOptions,
-        screenshotPath
-      );
-
-      // Send mismatch notification with screenshot and buttons
-      const keyboard = mismatchActionKeyboard(jobId);
-
-      await bot.api.sendPhoto(
-        bookingJob.user.telegramId,
-        new InputFile(screenshotPath),
-        {
-          caption: `<b>Preference Mismatch</b>\n\n` +
-            `Movie: ${bookingJob.movieName}\n\n` +
-            `<b>Wanted:</b>\n` +
-            (showtimePrefsTyped.preferredFormats?.length ? `Format: ${showtimePrefsTyped.preferredFormats.join(', ')}\n` : '') +
-            (showtimePrefsTyped.preferredLanguages?.length ? `Language: ${showtimePrefsTyped.preferredLanguages.join(', ')}\n` : '') +
-            (showtimePrefsTyped.preferredScreens?.length ? `Screen: ${showtimePrefsTyped.preferredScreens.join(', ')}\n` : '') +
-            (showtimePrefsTyped.preferredTimes?.length ? `Time: ${showtimePrefsTyped.preferredTimes.join(', ')}\n` : '') +
-            `\n<b>Issue:</b> ${matchResult.error}\n\n` +
-            `<b>Available:</b>\n` +
-            availableOptions.options.slice(0, 5).map(opt =>
-              `• ${opt.language} ${opt.format}${opt.screen ? ` (${opt.screen})` : ''} - ${opt.times.slice(0, 3).join(', ')}`
-            ).join('\n') +
-            `\n\nRespond within 15 minutes or job will be paused.`,
-          parse_mode: 'HTML',
-          reply_markup: keyboard,
+    for (const targetDate of datesToCheck) {
+      if (targetDate) {
+        logger.info('Checking date for tickets', { jobId, targetDate });
+        const dateSelected = await showtimesPage.selectDateByDay(targetDate);
+        if (dateSelected) {
+          await page.waitForTimeout(1500);
         }
-      );
+      }
 
-      logger.info('Preference mismatch detected, awaiting user input', {
-        jobId,
-        mismatchType: matchResult.mismatchType,
-      });
+      const hasShowtimes = await showtimesPage.waitForShowtimes();
+      if (!hasShowtimes) {
+        logger.info('No showtimes available on date', { jobId, targetDate });
+        continue;
+      }
 
-      await context.close();
-      await browser.close();
+      // Try each preferred theatre
+      for (const theatre of bookingJob.theatres) {
+        const found = await showtimesPage.selectTheatreShowtime(
+          theatre,
+          showtimePrefs.preferredTimes || [],
+          {
+            screens: showtimePrefs.preferredScreens,
+            formats: showtimePrefs.preferredFormats,
+            languages: showtimePrefs.preferredLanguages,
+          }
+        );
 
-      return { ticketsFound: false, error: 'Awaiting user input for preference mismatch' };
+        if (found) {
+          const screenLabel = showtimePrefs.preferredScreens?.join(', ') || 'Standard';
+          const dateLabel = targetDate ? `${targetDate} Dec` : 'Available Date';
+          logger.info('🎯 MATCHING TICKETS FOUND!', {
+            jobId,
+            movieName: bookingJob.movieName,
+            theatre,
+            date: dateLabel,
+            screens: screenLabel
+          });
+
+          // Update job status to BOOKING
+          await jobService.updateJobStatus(jobId, JobStatus.BOOKING);
+
+          // Notify user immediately with loud alert
+          await notificationService.notify(bookingJob.user.telegramId, {
+            type: 'tickets_found',
+            jobId,
+            movieName: `${bookingJob.movieName} [${screenLabel}]`,
+            theatre: `${theatre} • ${dateLabel}`,
+          });
+
+          // Add to booking queue
+          logger.info('Adding job to booking queue', { jobId });
+          await bookingQueue.add(
+            `booking-${jobId}`,
+            { jobId },
+            { jobId: `booking-${jobId}` }
+          );
+
+          await context.close();
+          await browser.close();
+
+          return {
+            ticketsFound: true,
+            theatre,
+          };
+        }
+      }
     }
 
-    // Original behavior: no tickets in preferred theatres
+    // If we reached here, the specific tickets (e.g. PCX screen) are not open yet
+    logger.info('Watch cycle completed - target screen/showtimes not opened yet. Keeping 24/7 watch active.', {
+      jobId,
+      theatres: bookingJob.theatres,
+      screens: showtimePrefs.preferredScreens,
+      dates: targetDates
+    });
+
     await context.close();
     await browser.close();
 
-    logger.debug('No tickets in preferred theatres', { jobId, theatres: bookingJob.theatres });
     return { ticketsFound: false };
 
   } catch (error) {

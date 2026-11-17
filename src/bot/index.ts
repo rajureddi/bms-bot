@@ -263,6 +263,84 @@ bot.on('message:text', async (ctx, next) => {
     return;
   }
 
+  // Handle direct BookMyShow link
+  if (text.includes('bookmyshow.com')) {
+    try {
+      const user = await userService.getOrCreate(telegramId);
+      const url = text.trim();
+
+      // Extract details from URL
+      let city = 'hyderabad';
+      let movieName = 'Avengers: Doomsday';
+      let date = '17';
+
+      const movieMatch = url.match(/\/movies\/([^/]+)\/([^/]+)/i);
+      if (movieMatch) {
+        city = movieMatch[1] || 'hyderabad';
+        movieName = (movieMatch[2] || 'Avengers: Doomsday')
+          .split('-')
+          .map(w => w.charAt(0).toUpperCase() + w.slice(1))
+          .join(' ');
+      }
+
+      const dateMatch = url.match(/\/(\d{4})(\d{2})(\d{2})/);
+      if (dateMatch && dateMatch[3]) {
+        date = dateMatch[3];
+      }
+
+      const preferredDates = (date === '17' || date === '18') ? ['17', '18'] : [date];
+      const watchUntil = new Date(2026, 11, 19, 23, 59, 59);
+
+      const job = await jobService.createJob({
+        userId: user.id,
+        movieName,
+        city,
+        watchFromDate: new Date(),
+        watchUntilDate: watchUntil,
+        theatres: ['Prasads Multiplex: Hyderabad'],
+        showtimePrefs: {
+          preferredDates,
+          preferredScreens: ['PCX'],
+          preferredFormats: ['3D'],
+          preferredLanguages: ['English'],
+          directUrl: url,
+        },
+        seatPrefs: {
+          count: 2,
+          preferCenter: true,
+          needAdjacent: true,
+          avoidBottomRows: 3,
+        },
+      });
+
+      await watchQueue.add(
+        `watch-${job.id}`,
+        { jobId: job.id },
+        { jobId: `watch-${job.id}-${Date.now()}`, delay: 1000 }
+      ).catch(err => logger.warn('Failed to enqueue direct watch job', { error: String(err) }));
+
+      await ctx.reply(
+        `🎯 *Direct BookMyShow Watcher Activated!*\n\n` +
+        `Movie: *${movieName}*\n` +
+        `City: *${city.toUpperCase()}*\n` +
+        `Target Theatre: *Prasads Multiplex: Hyderabad*\n` +
+        `Target Screen: *PCX (Screen 6 Large Screen)*\n` +
+        `Target Dates: *${preferredDates.join(' & ')} Dec 2026*\n` +
+        `Seats: *2 (Prime / Middle Preferred)*\n` +
+        `Direct BMS Link: [BookMyShow](${url})\n\n` +
+        `🚀 *Status: WATCHING 24/7*\n` +
+        `Prasads currently only has MS-INFINITY VSN 3D open. As soon as **PCX** tickets open for 17 Dec or 18 Dec, I will alert you and attempt booking!\n\n` +
+        `Use /myjobs to view your active watch jobs.`,
+        { parse_mode: 'Markdown' }
+      );
+      return;
+    } catch (error) {
+      logger.error('Error handling direct BMS URL', { error, telegramId });
+      await ctx.reply('Failed to create watch job from link. Please use /newjob.');
+      return;
+    }
+  }
+
   // Existing job message handler
   const handled = await handleJobMessage(ctx);
   if (!handled) {
@@ -328,6 +406,10 @@ bot.on('callback_query:data', async (ctx) => {
     else if (data.startsWith('date:page:')) {
       const offset = parseInt(data.replace('date:page:', ''), 10) || 0;
       await changeDatePage(ctx, offset);
+    } else if (data === 'date:both:17:18') {
+      ctx.session.selectedDates = ['17', '18'];
+      await ctx.answerCallbackQuery({ text: 'Selected 17 & 18 Dec' });
+      await showDateSelection(ctx);
     } else if (data.startsWith('date:toggle:')) {
       await toggleDateSelection(ctx, data.replace('date:toggle:', ''));
     } else if (data === 'date:any') {

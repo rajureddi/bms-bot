@@ -81,6 +81,7 @@ export async function processBookingJob(job: Job<BookingJobData>): Promise<Booki
     preferredLanguages: showtimePrefs.preferredLanguages,
     preferredScreens: showtimePrefs.preferredScreens,
     date: showtimePrefs.preferredDates?.[0],
+    directUrl: (showtimePrefs as any).directUrl,
     seatPrefs,
     userEmail: bookingJob.user.email || '',
     userPhone: bookingJob.user.phone || '',

@@ -53,6 +53,14 @@ export function dateKeyboard(selectedDates: string[] = [], offsetDays = 0): Inli
   const kb = new InlineKeyboard();
   const today = new Date();
 
+  // Quick advance buttons for Avengers / December bookings
+  const is17 = selectedDates.includes('17');
+  const is18 = selectedDates.includes('18');
+  kb.text(`${is17 ? '✓ ' : ''}17 Dec`, 'date:toggle:17')
+    .text(`${is18 ? '✓ ' : ''}18 Dec`, 'date:toggle:18')
+    .text('Both 17 & 18 Dec', 'date:both:17:18')
+    .row();
+
   // Generate 7 days starting from offsetDays
   for (let i = 0; i < 7; i++) {
     const date = new Date(today);

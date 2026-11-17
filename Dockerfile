@@ -44,4 +44,4 @@ RUN npx playwright install --with-deps chromium && \
 RUN useradd -m appuser && chown -R appuser:appuser /app
 USER appuser
 
-CMD ["sh", "-c", "npx prisma db push --skip-generate && node dist/index.js"]
+CMD ["sh", "-c", "if [ -z \"$DATABASE_URL\" ]; then echo \"[ERROR] DATABASE_URL is not set! In Railway, please link PostgreSQL or set DATABASE_URL in Variables.\"; sleep 30; exit 1; fi && npx prisma db push --skip-generate && node dist/index.js"]

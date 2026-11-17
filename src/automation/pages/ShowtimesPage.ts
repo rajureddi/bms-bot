@@ -330,39 +330,55 @@ export class ShowtimesPage extends BasePage {
   async selectDateByDay(day: string): Promise<boolean> {
     try {
       logger.info('Selecting date by day', { day });
-
-      // Wait for date selector to be visible
       await this.page.waitForTimeout(1000);
 
-      // BMS date pills have IDs like "20251228" and contain div elements with day numbers
-      // Look for date pill containing the day number
-      const datePills = this.page.locator('[id^="2025"], [id^="2026"]');
-      const count = await datePills.count();
+      const cleanDay = day.replace(/\D/g, '') || day;
 
-      logger.debug('Found date pills', { count });
+      // Strategy 0: If on a direct BMS buytickets URL, navigate directly to the target date
+      const currentUrl = this.page.url();
+      if (currentUrl.includes('/buytickets/')) {
+        const dateMatch = currentUrl.match(/\/buytickets\/([^/]+)\/(\d{8})/);
+        if (dateMatch && dateMatch[2]) {
+          const currentYmd = dateMatch[2]; // e.g. 20261217
+          const targetYmd = currentYmd.substring(0, 6) + cleanDay.padStart(2, '0');
+          if (currentYmd !== targetYmd) {
+            const targetUrl = currentUrl.replace(`/${currentYmd}`, `/${targetYmd}`);
+            logger.info('Switching date via direct BMS URL navigation', { from: currentYmd, to: targetYmd, targetUrl });
+            await this.page.goto(targetUrl, { waitUntil: 'domcontentloaded', timeout: 30000 });
+            await this.page.waitForTimeout(2000);
+            return true;
+          } else {
+            logger.info('Already on target date URL', { targetYmd });
+            return true;
+          }
+        }
+      }
+
+      // Strategy 1: BMS date pills with IDs like "20261217"
+      const datePills = this.page.locator('[id^="2025"], [id^="2026"], [class*="dateItem"], [class*="DatePill"]');
+      const count = await datePills.count();
 
       for (let i = 0; i < count; i++) {
         const pill = datePills.nth(i);
         const id = await pill.getAttribute('id');
         const text = await pill.textContent();
 
-        // Check if the ID or text contains our day
-        // ID format is YYYYMMDD, so day 28 would have ID ending in 28
-        if (id?.endsWith(day.padStart(2, '0')) || text?.includes(day)) {
-          logger.info('Found date pill', { id, day });
+        if (id?.endsWith(cleanDay.padStart(2, '0')) || (text && text.includes(cleanDay))) {
+          logger.info('Found date pill', { id, cleanDay, text: text?.trim() });
           await pill.click();
-          await this.delay(1000); // Wait for page to update
-          logger.info('Date selected successfully', { id, day });
+          await this.delay(1000);
           return true;
         }
       }
 
-      // Fallback: Try clicking element with exact day number
-      const dayDiv = this.page.locator('div').filter({ hasText: new RegExp(`^${day}$`) }).first();
-      if (await dayDiv.isVisible().catch(() => false)) {
-        await dayDiv.click();
+      // Strategy 2: Look for button or anchor containing day number and month
+      const dayButtons = this.page.locator('a, button, li').filter({
+        hasText: new RegExp(`\\b${cleanDay}\\b`, 'i')
+      });
+      if ((await dayButtons.count()) > 0) {
+        await dayButtons.first().click();
         await this.delay(1000);
-        logger.info('Clicked day number directly', { day });
+        logger.info('Clicked day button', { cleanDay });
         return true;
       }
 
@@ -370,7 +386,6 @@ export class ShowtimesPage extends BasePage {
       return false;
     } catch (error) {
       logger.error('Failed to select date by day', { day, error });
-      // Don't throw - just continue with default date
       return false;
     }
   }
@@ -461,8 +476,20 @@ export class ShowtimesPage extends BasePage {
         }
       }
 
+      // Check if user requested a specific screen (e.g. PCX, IMAX, 4DX)
+      const theatreRowText = (await theatreRow.textContent() || '').toUpperCase();
+      if (prefs?.screens?.length) {
+        const hasMatchingScreen = prefs.screens.some(screen =>
+          theatreRowText.includes(screen.toUpperCase())
+        );
+        if (!hasMatchingScreen) {
+          logger.info(`Screen [${prefs.screens.join(', ')}] not opened yet for ${cleanName}`);
+          return false;
+        }
+      }
+
       // Find showtimes within the theatre row
-      const showtimePills = theatreRow.locator('[class*="sc-1la7659-0"], [class*="sc-1vhizuf-1"]');
+      const showtimePills = theatreRow.locator('[class*="sc-1la7659-0"], [class*="sc-1vhizuf-1"], a[href*="/buytickets/"]');
       const pillCount = await showtimePills.count();
 
       logger.debug('Found showtime pills in theatre', { theatreName, count: pillCount });
@@ -479,22 +506,48 @@ export class ShowtimesPage extends BasePage {
 
       for (let i = 0; i < pillCount; i++) {
         const pill = showtimePills.nth(i);
-        const text = await pill.textContent() || '';
-        const score = this.scoreShowtime(text, preferredTimes, prefs);
+        const pillText = (await pill.textContent() || '').trim();
 
-        logger.debug('Scored showtime', { text: text.trim(), score });
+        // Get container / category context for screen and format (e.g. PCX / MS-INFINITY VSN 3D)
+        const containerText = await pill.evaluate((el) => {
+          let text = '';
+          let curr: HTMLElement | null = el.parentElement;
+          while (curr && !curr.getAttribute('class')?.includes('sc-e8nk8f-3') && curr.tagName !== 'BODY') {
+            const heading = curr.querySelector('[class*="sc-1qdowf4"], [class*="subtitle"], [class*="screen"], [class*="format"], h5, h6');
+            if (heading && heading.textContent) {
+              text += ' ' + heading.textContent;
+            }
+            curr = curr.parentElement;
+          }
+          return text;
+        }).catch(() => '');
+
+        const combinedText = `${pillText} ${containerText}`.toUpperCase();
+
+        // If screen filter is specified, require this pill to match the screen
+        if (prefs?.screens?.length) {
+          const matchesScreen = prefs.screens.some(s => combinedText.includes(s.toUpperCase()));
+          if (!matchesScreen) {
+            // Skip this pill because it belongs to another screen (e.g. MS-Infinity instead of PCX)
+            continue;
+          }
+        }
+
+        const score = this.scoreShowtime(combinedText, preferredTimes, prefs);
+        logger.debug('Scored showtime', { pillText, combinedText, score });
 
         if (score > bestScore) {
           bestScore = score;
           bestPill = pill;
-          bestText = text;
+          bestText = pillText;
         }
       }
 
       if (bestPill) {
-        logger.info('Selected best showtime', {
+        logger.info('Selected matching showtime', {
           text: bestText.trim(),
           score: bestScore,
+          theatre: cleanName,
           hasPrefs: Boolean(prefs?.screens?.length || prefs?.formats?.length)
         });
         await bestPill.click();
@@ -502,7 +555,13 @@ export class ShowtimesPage extends BasePage {
         return true;
       }
 
-      // Fallback: click first available
+      // If user had specific screen or format preferences, DO NOT click random fallback
+      if (prefs?.screens?.length || prefs?.formats?.length) {
+        logger.info('No showtime pill met the screen/format criteria', { theatre: cleanName, prefs });
+        return false;
+      }
+
+      // Fallback: click first available only if no specific screen/format constraints
       logger.info('Using first available showtime for theatre');
       await showtimePills.first().click();
       await this.waitForLoad();

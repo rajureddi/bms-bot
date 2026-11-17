@@ -47,19 +47,32 @@ export async function createServer(): Promise<FastifyInstance> {
         city?: string;
         theatre?: string;
         date?: string;
+        month?: string;
         time?: string;
         seatCount?: number;
         category?: string;
+        screen?: string;
+        preferredScreens?: string[];
+        directUrl?: string;
         telegramUserId?: string;
         telegramUser?: { id: number; first_name?: string; username?: string };
       };
 
       const movieName = body.movieName || 'Avengers: Doomsday';
       const city = (body.city || 'hyderabad').toLowerCase();
-      const theatre = body.theatre || 'Prasads Multiplex';
+      const theatre = body.theatre || 'Prasads Multiplex: Hyderabad';
       const date = body.date || '17';
       const time = body.time === 'Any Time' ? undefined : body.time;
       const seatCount = body.seatCount || 2;
+      const screen = body.screen || 'PCX';
+      const preferredScreens = body.preferredScreens || [screen];
+
+      // Auto-set direct BMS URL for Avengers: Doomsday in Hyderabad
+      const directUrl = body.directUrl || (
+        movieName.toLowerCase().includes('avengers') && city === 'hyderabad'
+          ? `https://in.bookmyshow.com/movies/hyderabad/avengers-doomsday/buytickets/ET00526320/20261217?etCodes=*&language=english&refEventCode=ET00526320`
+          : undefined
+      );
 
       // Identify user: from request, or fallback to the latest registered user in database
       let telegramId = body.telegramUserId || body.telegramUser?.id?.toString();
@@ -74,17 +87,16 @@ export async function createServer(): Promise<FastifyInstance> {
       const user = await userService.getOrCreate(telegramId);
 
       const now = new Date();
-      let watchUntil = new Date();
-      const dayNum = parseInt(date, 10);
-      if (!isNaN(dayNum)) {
-        watchUntil.setDate(dayNum);
-        if (watchUntil < now) {
-          watchUntil.setMonth(watchUntil.getMonth() + 1);
-        }
+      // For December releases (like Avengers Doomsday Dec 17/18), watch through Dec 19
+      let watchUntil: Date;
+      if (movieName.toLowerCase().includes('avengers') || body.month === 'Dec' || date === '17' || date === '18') {
+        watchUntil = new Date(2026, 11, 19, 23, 59, 59);
       } else {
-        watchUntil.setDate(now.getDate() + 30);
+        watchUntil = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
       }
-      watchUntil.setHours(23, 59, 59, 999);
+
+      // Check both 17 and 18 for advance bookings
+      const preferredDates = (date === '17' || date === '18') ? ['17', '18'] : [date];
 
       const job = await jobService.createJob({
         userId: user.id,
@@ -94,13 +106,18 @@ export async function createServer(): Promise<FastifyInstance> {
         watchUntilDate: watchUntil,
         theatres: [theatre],
         showtimePrefs: {
-          preferredDates: [date],
+          preferredDates,
           preferredTimes: time ? [time] : undefined,
+          preferredScreens,
+          preferredFormats: ['3D'],
+          preferredLanguages: ['English'],
+          directUrl,
         },
         seatPrefs: {
           count: seatCount,
           preferCenter: true,
           needAdjacent: true,
+          avoidBottomRows: 3,
         },
       });
 
@@ -116,16 +133,18 @@ export async function createServer(): Promise<FastifyInstance> {
         const { bot } = await import('../bot/index.js');
         await bot.api.sendMessage(
           telegramId,
-          `🎬 *Booking Job Created from BMS App!*\n\n` +
+          `🎬 *24/7 Watch Job Created from BMS App!*\n\n` +
           `Job ID: \`${job.id.substring(0, 8)}\`\n` +
           `Movie: *${movieName}*\n` +
           `City: *${city}*\n` +
           `Theatre: *${theatre}*\n` +
-          `Date: *${date} Dec / Selected*\n` +
-          `Time: *${time || 'Any Time (All Shows)'}*\n` +
-          `Seats: *${seatCount} Seats (Center & Adjacent Preferred)*\n\n` +
-          `🚀 *Monitoring BookMyShow 24/7!*\n` +
-          `You will receive an instant notification when tickets open. Use /myjobs to view your active jobs.`,
+          `Target Screen: *${preferredScreens.join(', ')} (Large Screen)*\n` +
+          `Target Dates: *${preferredDates.join(' & ')} Dec 2026*\n` +
+          `Time: *${time || 'Any Time (First Available)'}*\n` +
+          `Seats: *${seatCount} Seats (Center & Adjacent)*\n` +
+          (directUrl ? `Direct BMS Link: [BookMyShow](${directUrl})\n\n` : `\n`) +
+          `🚀 *Monitoring Active 24/7!*\n` +
+          `Prasads Multiplex is currently only showing MS-INFINITY VSN 3D. The second **PCX** opens on 17 Dec or 18 Dec, you will receive an instant notification and booking!`,
           { parse_mode: 'Markdown' }
         );
       } catch (err) {

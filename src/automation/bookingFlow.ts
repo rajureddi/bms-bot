@@ -18,6 +18,7 @@ export interface BookingConfig {
   preferredLanguages?: string[];// e.g., ["Hindi", "Telugu"]
   preferredScreens?: string[];  // e.g., ["PCX", "DOLBY"]
   date?: string;                // Day of month (e.g., "28" for 28th)
+  directUrl?: string;           // Direct BookMyShow buytickets URL
   seatPrefs: SeatPrefs;
   userEmail: string;
   userPhone: string;
@@ -137,48 +138,54 @@ export class BookingFlow {
     }
 
     try {
-      // Step 1: Navigate to movie
-      logger.info('Starting booking attempt', { movie: config.movieName });
-      const homePage = new HomePage(this.page);
-      await homePage.navigate(config.city);
-      await this.saveDebugInfo('01-homepage-loaded');
+      // Step 1: Navigate to movie (direct URL if available)
+      logger.info('Starting booking attempt', { movie: config.movieName, directUrl: config.directUrl });
 
-      // Try multiple approaches to find the movie
-      let movieFound = false;
+      if (config.directUrl) {
+        await this.page.goto(config.directUrl, { waitUntil: 'domcontentloaded', timeout: 35000 });
+        await this.page.waitForTimeout(2000);
+        await this.saveDebugInfo('01-direct-url-loaded');
+      } else {
+        const homePage = new HomePage(this.page);
+        await homePage.navigate(config.city);
+        await this.saveDebugInfo('01-homepage-loaded');
 
-      // Approach 1: Try clicking movie card directly from homepage (faster)
-      movieFound = await homePage.clickMovieCard(config.movieName);
-      await this.saveDebugInfo('02-after-movie-card-click');
+        // Try multiple approaches to find the movie
+        let movieFound = false;
 
-      // Approach 2: If not found on homepage, try search
-      if (!movieFound) {
-        logger.info('Movie not on homepage, trying search');
-        await homePage.searchMovie(config.movieName);
-        await this.saveDebugInfo('03-after-search');
-        movieFound = await homePage.selectMovieFromSearch(config.movieName);
-        await this.saveDebugInfo('04-after-movie-select');
-      }
+        // Approach 1: Try clicking movie card directly from homepage (faster)
+        movieFound = await homePage.clickMovieCard(config.movieName);
+        await this.saveDebugInfo('02-after-movie-card-click');
 
-      if (!movieFound) {
-        await this.saveDebugInfo('error-movie-not-found');
-        return { success: false, error: 'Movie not found' };
-      }
+        // Approach 2: If not found on homepage, try search
+        if (!movieFound) {
+          logger.info('Movie not on homepage, trying search');
+          await homePage.searchMovie(config.movieName);
+          await this.saveDebugInfo('03-after-search');
+          movieFound = await homePage.selectMovieFromSearch(config.movieName);
+          await this.saveDebugInfo('04-after-movie-select');
+        }
 
-      // Step 1.5: Click "Book tickets" button on movie details page
-      const bookClicked = await homePage.clickBookTickets();
-      await this.saveDebugInfo('05-after-book-tickets-click');
-      if (!bookClicked) {
-        logger.warn('Book tickets button not found, continuing anyway');
-      }
+        if (!movieFound) {
+          await this.saveDebugInfo('error-movie-not-found');
+          return { success: false, error: 'Movie not found' };
+        }
 
-      // Step 1.6: Handle language/format dialog if it appears
-      // This dialog shows for movies with multiple language/format versions
-      const dialogHandled = await homePage.handleLanguageFormatDialog(
-        config.preferredLanguages,
-        config.preferredFormats
-      );
-      if (dialogHandled) {
-        await this.saveDebugInfo('05b-after-language-format-selection');
+        // Step 1.5: Click "Book tickets" button on movie details page
+        const bookClicked = await homePage.clickBookTickets();
+        await this.saveDebugInfo('05-after-book-tickets-click');
+        if (!bookClicked) {
+          logger.warn('Book tickets button not found, continuing anyway');
+        }
+
+        // Step 1.6: Handle language/format dialog if it appears
+        const dialogHandled = await homePage.handleLanguageFormatDialog(
+          config.preferredLanguages,
+          config.preferredFormats
+        );
+        if (dialogHandled) {
+          await this.saveDebugInfo('05b-after-language-format-selection');
+        }
       }
 
       // Step 2: Select showtime

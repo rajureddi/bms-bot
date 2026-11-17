@@ -15,6 +15,7 @@ export interface CreateJobInput {
     preferredFormats?: string[];
     preferredLanguages?: string[];
     preferredScreens?: string[];
+    directUrl?: string;
   };
   seatPrefs: {
     count: number;
