@@ -75,14 +75,15 @@ export async function createServer(): Promise<FastifyInstance> {
           : undefined
       );
 
-      // Identify user: from request, or fallback to the latest registered user in database
+      // Identify user: from request, or fallback to the registered user in database
       let telegramId = body.telegramUserId || body.telegramUser?.id?.toString();
-      if (!telegramId || telegramId === 'webapp_user') {
+      if (!telegramId || telegramId === 'webapp_user' || telegramId === 'null' || telegramId === 'undefined') {
         const { prisma } = await import('../db/client.js');
         const latestUser = await prisma.user.findFirst({
+          where: { telegramId: { not: 'webapp_user' } },
           orderBy: { updatedAt: 'desc' },
         });
-        telegramId = latestUser ? latestUser.telegramId : '647187240';
+        telegramId = latestUser?.telegramId || '647187240';
       }
 
       const user = await userService.getOrCreate(telegramId);

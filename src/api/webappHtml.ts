@@ -352,7 +352,18 @@ export const getWebAppHtml = (): string => `<!DOCTYPE html>
     // Extract userId from URL or Telegram
     const urlParams = new URLSearchParams(window.location.search);
     const tg = window.Telegram?.WebApp;
-    const currentTelegramId = urlParams.get('userId') || tg?.initDataUnsafe?.user?.id || null;
+    function getTelegramUserId() {
+      const fromParam = urlParams.get('userId');
+      if (fromParam && fromParam !== 'null' && fromParam !== 'undefined' && fromParam.trim() !== '') {
+        return fromParam.trim();
+      }
+      const fromTg = tg?.initDataUnsafe?.user?.id;
+      if (fromTg && String(fromTg) !== 'null' && String(fromTg) !== 'undefined') {
+        return String(fromTg);
+      }
+      return '647187240';
+    }
+    const currentTelegramId = getTelegramUserId();
 
     const state = {
       city: 'hyderabad',
@@ -627,7 +638,7 @@ export const getWebAppHtml = (): string => `<!DOCTYPE html>
         seatCount: state.seatCount,
         category: state.category,
         screen: state.screen || 'PCX',
-        telegramUserId: currentTelegramId ? String(currentTelegramId) : null
+        telegramUserId: getTelegramUserId()
       };
 
       try {
