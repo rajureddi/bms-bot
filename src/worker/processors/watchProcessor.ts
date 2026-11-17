@@ -156,6 +156,79 @@ async function saveDebugInfo(page: any, jobId: string, stage: string): Promise<v
   }
 }
 
+// Known PCX session allocations for Prasads Multiplex: Hyderabad (PRHN)
+const PCX_SESSION_IDS = [
+  259085, 259074, 259086, 259087, 259088, 259089, 259090,
+  259075, 259076, 259077, 259078
+];
+const PCX_EVENT_CODES = ['ET00526306', 'ET00526320'];
+const PCX_PROBE_DATES = ['20261217', '20261218', '20261118'];
+
+/**
+ * Direct Seat Layout Prober for Prasads PCX
+ * Checks whether any reserved PCX session ID has become active on BookMyShow
+ */
+async function checkDirectPcxSeatLayout(page: any): Promise<{
+  found: boolean;
+  seatUrl?: string;
+  sessionId?: number;
+  date?: string;
+  eventCode?: string;
+} | null> {
+  for (const date of PCX_PROBE_DATES) {
+    for (const sid of PCX_SESSION_IDS) {
+      for (const eventCode of PCX_EVENT_CODES) {
+        const seatUrl = `https://in.bookmyshow.com/movies/HYD/seat-layout/${eventCode}/PRHN/${sid}/${date}`;
+        try {
+          logger.debug('Probing direct PCX seat layout', { sid, date, eventCode });
+          await page.goto(seatUrl, { waitUntil: 'domcontentloaded', timeout: 12000 });
+          const currentUrl = page.url();
+
+          if (!currentUrl.includes('/seat-layout/')) {
+            continue;
+          }
+
+          await page.waitForTimeout(1000);
+          const bodyText = (await page.locator('body').textContent().catch(() => '')) || '';
+          const lowerBody = bodyText.toLowerCase();
+
+          const hasError =
+            lowerBody.includes('something went wrong') ||
+            lowerBody.includes('invalid') ||
+            lowerBody.includes('oops') ||
+            lowerBody.includes('not available') ||
+            lowerBody.includes('session expired') ||
+            lowerBody.includes('does not exist') ||
+            bodyText.length < 500;
+
+          if (hasError) {
+            continue;
+          }
+
+          // Check if seat layout or seat count popup is visible
+          const seatElements = page.locator('.seat-layout, #seat-map, [class*="seat"], [data-seat-id], [class*="layout"], button:has-text("Select Seats")');
+          const seatCount = await seatElements.count().catch(() => 0);
+
+          if (seatCount > 0) {
+            logger.info('🎯 DIRECT PCX SEAT LAYOUT IS LIVE AND ENABLED!', { seatUrl, sid, date, eventCode });
+            return {
+              found: true,
+              seatUrl,
+              sessionId: sid,
+              date,
+              eventCode,
+            };
+          }
+        } catch (err) {
+          logger.debug('Probing seat layout URL failed or timed out', { seatUrl, error: String(err) });
+        }
+      }
+    }
+  }
+
+  return null;
+}
+
 /**
  * Process a watch job - check if tickets are available for the specified movie
  */
@@ -231,7 +304,58 @@ export async function processWatchJob(job: Job<WatchJobData>): Promise<WatchResu
       directUrl?: string;
     };
 
-    // If direct BMS URL is specified, or for Avengers Doomsday in Hyderabad, navigate directly
+    // Strategy 1: Probe direct PCX seat layout URLs for Prasads Multiplex
+    const isPrasadsPcxJob =
+      bookingJob.theatres.some((t) => t.toLowerCase().includes('prasad')) &&
+      (bookingJob.movieName.toLowerCase().includes('avengers') ||
+        showtimePrefs.preferredScreens?.includes('PCX'));
+
+    if (isPrasadsPcxJob) {
+      logger.info('Probing direct PCX seat layout sessions for Prasads Multiplex (259074-259078, 259085-259090)', { jobId });
+      const directMatch = await checkDirectPcxSeatLayout(page);
+
+      if (directMatch?.found && directMatch.seatUrl) {
+        logger.info('🎯 DIRECT PCX SEAT LAYOUT IS ACTIVE!', directMatch);
+        await jobService.updateJobStatus(jobId, JobStatus.BOOKING);
+
+        const dateStr =
+          directMatch.date === '20261217'
+            ? '17 Dec 2026'
+            : directMatch.date === '20261218'
+            ? '18 Dec 2026'
+            : '18 Nov 2026';
+
+        await bot.api.sendMessage(
+          bookingJob.user.telegramId,
+          `🚨 <b>PCX SCREEN RELEASED AT PRASADS!</b> 🚨\n\n` +
+            `Movie: <b>Avengers: Doomsday</b>\n` +
+            `Theatre: <b>Prasads Multiplex: Hyderabad (PCX Screen)</b>\n` +
+            `Date: <b>${dateStr}</b>\n` +
+            `Session ID: <code>${directMatch.sessionId}</code>\n\n` +
+            `🔗 <b>Direct Seat Booking Link:</b>\n` +
+            `<a href="${directMatch.seatUrl}">${directMatch.seatUrl}</a>\n\n` +
+            `⚡ Bot is attempting automatic seat reservation now!`,
+          { parse_mode: 'HTML' }
+        );
+
+        await bookingQueue.add(
+          `booking-${jobId}`,
+          { jobId },
+          { jobId: `booking-${jobId}` }
+        );
+
+        await context.close();
+        await browser.close();
+
+        return {
+          ticketsFound: true,
+          theatre: 'Prasads Multiplex: Hyderabad (PCX Screen)',
+          showtime: `${dateStr} (Session ${directMatch.sessionId})`,
+        };
+      }
+    }
+
+    // Strategy 2: If direct BMS URL is specified, or for Avengers Doomsday in Hyderabad, navigate directly
     let directUrl = showtimePrefs.directUrl;
     if (!directUrl && bookingJob.movieName.toLowerCase().includes('avengers') && bookingJob.city.toLowerCase() === 'hyderabad') {
       const defaultDate = showtimePrefs.preferredDates?.[0]?.replace(/\D/g, '') || '17';
