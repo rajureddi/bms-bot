@@ -488,16 +488,23 @@ export async function showTheatrePrompt(ctx: MyContext): Promise<void> {
 export async function showDateSelection(ctx: MyContext): Promise<void> {
   const draft = ctx.session.jobDraft || {};
   const selectedDates = ctx.session.selectedDates || [];
+  const offsetDays = ctx.session.dateOffset || 0;
 
   const text = `*Create New Booking Job*\n\n` +
     `Movie: *${draft.movieName}*\n` +
     `City: *${draft.city}*\n` +
     `Theatre(s): *${draft.theatres?.join(', ')}*\n\n` +
     `*Step 4/8: Preferred Date*\n\n` +
-    `Select date(s), then tap Done:` +
+    `Select date(s) using the buttons (use ◀ / ▶ for future weeks), or type a date directly in chat (e.g. *17* or *17 Dec*), then tap Done:` +
     (selectedDates.length > 0 ? `\n\nSelected: ${selectedDates.join(', ')}` : '');
 
-  await editOrSend(ctx, text, dateKeyboard(selectedDates));
+  await editOrSend(ctx, text, dateKeyboard(selectedDates, offsetDays));
+}
+
+export async function changeDatePage(ctx: MyContext, offset: number): Promise<void> {
+  ctx.session.dateOffset = offset;
+  await ctx.answerCallbackQuery();
+  await showDateSelection(ctx);
 }
 
 export async function toggleDateSelection(ctx: MyContext, day: string): Promise<void> {

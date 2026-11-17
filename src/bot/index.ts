@@ -44,6 +44,7 @@ import {
   showCitySelection,
   showTheatrePrompt,
   showDateSelection,
+  changeDatePage,
   toggleDateSelection,
   showFormatSelection,
   toggleFormatSelection,
@@ -79,6 +80,7 @@ export interface SessionData {
   jobDraft?: JobDraft;
   menuMessageId?: number;
   selectedDates?: string[];
+  dateOffset?: number;
   selectedFormats?: string[];
   selectedLanguages?: string[];
   selectedScreens?: string[];
@@ -321,7 +323,10 @@ bot.on('callback_query:data', async (ctx) => {
     }
 
     // Date selection
-    else if (data.startsWith('date:toggle:')) {
+    else if (data.startsWith('date:page:')) {
+      const offset = parseInt(data.replace('date:page:', ''), 10) || 0;
+      await changeDatePage(ctx, offset);
+    } else if (data.startsWith('date:toggle:')) {
       await toggleDateSelection(ctx, data.replace('date:toggle:', ''));
     } else if (data === 'date:any') {
       ctx.session.selectedDates = [];

@@ -497,6 +497,24 @@ export async function handleJobMessage(ctx: MyContext): Promise<boolean> {
         await showDateSelection(ctx);
         return true;
 
+      case 'job_date': {
+        const input = text.trim();
+        // Extract day number (e.g., "17" from "17" or "17 Dec")
+        const dayMatch = input.match(/\b(\d{1,2})\b/);
+        const day = dayMatch && dayMatch[1] ? dayMatch[1] : input;
+
+        if (!ctx.session.selectedDates) {
+          ctx.session.selectedDates = [];
+        }
+        if (!ctx.session.selectedDates.includes(day)) {
+          ctx.session.selectedDates.push(day);
+        }
+
+        const { showDateSelection: refreshDateSelection } = await import('../menus/index.js');
+        await refreshDateSelection(ctx);
+        return true;
+      }
+
       default:
         ctx.session.step = undefined;
         return false;

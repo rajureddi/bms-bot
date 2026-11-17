@@ -43,14 +43,14 @@ export function cityKeyboard(): InlineKeyboard {
   return kb;
 }
 
-export function dateKeyboard(selectedDates: string[] = []): InlineKeyboard {
+export function dateKeyboard(selectedDates: string[] = [], offsetDays = 0): InlineKeyboard {
   const kb = new InlineKeyboard();
   const today = new Date();
 
-  // Generate next 7 days
+  // Generate 7 days starting from offsetDays
   for (let i = 0; i < 7; i++) {
     const date = new Date(today);
-    date.setDate(today.getDate() + i);
+    date.setDate(today.getDate() + offsetDays + i);
     const day = date.getDate().toString();
     const label = date.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
     const isSelected = selectedDates.includes(day);
@@ -58,6 +58,15 @@ export function dateKeyboard(selectedDates: string[] = []): InlineKeyboard {
 
     kb.text(`${prefix}${label}`, `date:toggle:${day}`);
     if ((i + 1) % 4 === 0) kb.row();
+  }
+
+  // Week navigation row
+  kb.row();
+  if (offsetDays > 0) {
+    kb.text('◀ Prev Week', `date:page:${Math.max(0, offsetDays - 7)}`);
+  }
+  if (offsetDays < 60) {
+    kb.text('Next Week ▶', `date:page:${offsetDays + 7}`);
   }
 
   kb.row()
