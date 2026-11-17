@@ -1,10 +1,15 @@
 // src/bot/menus/keyboards.ts
 import { InlineKeyboard } from 'grammy';
+import { config } from '../../utils/config.js';
 
 export const CITIES = ['hyderabad', 'bangalore', 'mumbai', 'delhi', 'chennai', 'kolkata', 'pune'];
 
 export function mainMenuKeyboard(): InlineKeyboard {
-  return new InlineKeyboard()
+  const kb = new InlineKeyboard();
+  if (config.appUrl) {
+    kb.webApp('🎬 Open BookMyShow App', config.appUrl).row();
+  }
+  return kb
     .text('New Job', 'menu:newjob')
     .text('My Jobs', 'menu:jobs')
     .row()

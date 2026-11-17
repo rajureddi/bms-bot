@@ -17,6 +17,9 @@ const configSchema = z.object({
   // Security
   encryptionKey: z.string().length(64, 'Must be 32 bytes (64 hex chars)'),
   jwtSecret: z.string().min(32),
+
+  // App & WebApp
+  appUrl: z.string().optional(),
 });
 
 export type Config = z.infer<typeof configSchema>;
@@ -31,6 +34,7 @@ function loadConfig(): Config {
     telegramBotToken: process.env.TELEGRAM_BOT_TOKEN,
     encryptionKey: process.env.ENCRYPTION_KEY,
     jwtSecret: process.env.JWT_SECRET,
+    appUrl: process.env.APP_URL || (process.env.RAILWAY_PUBLIC_DOMAIN ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}` : undefined),
   });
 
   if (!result.success) {

@@ -6,6 +6,7 @@ import { startBot, stopBot } from './bot/index.js';
 import { startWorkers, stopWorkers } from './worker/worker.js';
 import { startScheduler, stopScheduler } from './worker/scheduler.js';
 import { testRedisConnection, closeRedisConnections } from './worker/redis.js';
+import { startServer, stopServer } from './api/server.js';
 
 async function main(): Promise<void> {
   logger.info('Starting BMS Bot...', { nodeEnv: config.nodeEnv });
@@ -13,6 +14,9 @@ async function main(): Promise<void> {
   // Connect to database
   await connectDatabase();
   logger.info('Database connected');
+
+  // Start Fastify Web Server & Mini App
+  await startServer(config.port);
 
   // Test Redis connection
   const redisConnected = await testRedisConnection();
@@ -48,8 +52,9 @@ async function shutdown(): Promise<void> {
   // Close Redis connections
   await closeRedisConnections();
 
-  // Stop bot and database
+  // Stop bot, server, and database
   await stopBot();
+  await stopServer();
   await disconnectDatabase();
 
   logger.info('Shutdown complete');

@@ -1,7 +1,8 @@
-import { CommandContext, InlineKeyboard } from 'grammy';
+import { CommandContext } from 'grammy';
 import { userService } from '../../services/userService.js';
 import { logger } from '../../utils/logger.js';
 import { MyContext } from '../index.js';
+import { mainMenuKeyboard } from '../menus/keyboards.js';
 
 export async function startCommand(ctx: CommandContext<MyContext>): Promise<void> {
   const telegramId = ctx.from?.id.toString();
@@ -15,12 +16,7 @@ export async function startCommand(ctx: CommandContext<MyContext>): Promise<void
     const user = await userService.getOrCreate(telegramId);
     const isNew = user.createdAt.getTime() > Date.now() - 5000;
 
-    const keyboard = new InlineKeyboard()
-      .text('New Job', 'menu:newjob')
-      .text('My Jobs', 'menu:jobs')
-      .row()
-      .text('My Cards', 'menu:cards')
-      .text('Settings', 'menu:settings');
+    const keyboard = mainMenuKeyboard();
 
     let text: string;
     if (isNew) {

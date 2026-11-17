@@ -1,6 +1,9 @@
 import { Bot, session, GrammyError, HttpError, Context, SessionFlavor } from 'grammy';
 import { config } from '../utils/config.js';
 import { logger } from '../utils/logger.js';
+import { userService } from '../services/userService.js';
+import { jobService } from '../worker/jobService.js';
+import { watchQueue } from '../worker/queues.js';
 import { startCommand } from './commands/start.js';
 import { helpCommand } from './commands/help.js';
 import {
@@ -60,7 +63,6 @@ import {
   handleMismatchCancel,
   handleMismatchBack,
 } from './menus/index.js';
-import { userService } from '../services/userService.js';
 import { giftCardService } from '../services/giftCardService.js';
 
 export interface JobDraft {
@@ -542,6 +544,82 @@ bot.catch((err) => {
   }
 });
 
+// Handle data submitted from Telegram Mini App (Web App)
+bot.on('message:web_app_data', async (ctx) => {
+  try {
+    const rawData = ctx.message?.web_app_data?.data;
+    if (!rawData) return;
+
+    const telegramId = ctx.from?.id.toString();
+    if (!telegramId) return;
+
+    const data = JSON.parse(rawData);
+    const user = await userService.getOrCreate(telegramId);
+
+    const movieName = data.movieName || 'Avengers: Doomsday';
+    const city = (data.city || 'hyderabad').toLowerCase();
+    const theatre = data.theatre || 'Prasads Multiplex';
+    const date = data.date || '17';
+    const time = data.time || '02:00 PM';
+    const seatCount = data.seatCount || 2;
+    const seats: string[] = data.seats || [];
+
+    const now = new Date();
+    let watchUntil = new Date();
+    const dayNum = parseInt(date, 10);
+    if (!isNaN(dayNum)) {
+      watchUntil.setDate(dayNum);
+      if (watchUntil < now) {
+        watchUntil.setMonth(watchUntil.getMonth() + 1);
+      }
+    } else {
+      watchUntil.setDate(now.getDate() + 30);
+    }
+    watchUntil.setHours(23, 59, 59, 999);
+
+    const job = await jobService.createJob({
+      userId: user.id,
+      movieName,
+      city,
+      watchFromDate: now,
+      watchUntilDate: watchUntil,
+      theatres: [theatre],
+      showtimePrefs: {
+        preferredDates: [date],
+        preferredTimes: [time],
+      },
+      seatPrefs: {
+        count: seatCount,
+        preferCenter: true,
+        needAdjacent: true,
+      },
+    });
+
+    await watchQueue.add(
+      `watch-${job.id}`,
+      { jobId: job.id },
+      { jobId: `watch-${job.id}-${Date.now()}`, delay: 1000 }
+    ).catch(() => {});
+
+    await ctx.reply(
+      `🎬 *Booking Job Created from BMS Mini App!*\n\n` +
+      `Job ID: \`${job.id.substring(0, 8)}\`\n` +
+      `Movie: *${movieName}*\n` +
+      `City: *${city}*\n` +
+      `Theatre: *${theatre}*\n` +
+      `Date: *${date} Dec / Selected*\n` +
+      `Time: *${time}*\n` +
+      `Seats: *${seatCount}* (${seats.join(', ') || 'Best Seats'})\n\n` +
+      `🚀 *Live monitoring started on BookMyShow!*\n` +
+      `I will automatically notify you when tickets drop. Use /myjobs to view status.`,
+      { parse_mode: 'Markdown' }
+    );
+  } catch (error) {
+    logger.error('Error handling web_app_data', { error: String(error) });
+    await ctx.reply('Failed to process booking from Mini App. Please try again.');
+  }
+});
+
 export async function startBot(): Promise<void> {
   logger.info('Starting Telegram bot...');
 
@@ -559,6 +637,21 @@ export async function startBot(): Promise<void> {
     { command: 'addcard', description: 'Add a gift card' },
     { command: 'mycards', description: 'List your gift cards' },
   ]);
+
+  if (config.appUrl) {
+    try {
+      await bot.api.setChatMenuButton({
+        menu_button: {
+          type: 'web_app',
+          text: '🎬 BMS App',
+          web_app: { url: config.appUrl },
+        },
+      });
+      logger.info('Set bot chat menu button to Web App', { url: config.appUrl });
+    } catch (err) {
+      logger.warn('Could not set chat menu button', { error: String(err) });
+    }
+  }
 
   // Start polling
   bot.start({
