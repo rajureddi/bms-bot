@@ -644,8 +644,8 @@ export const getWebAppHtml = (): string => `<!DOCTYPE html>
           alert('Error: ' + (data.error || 'Failed to create job'));
         }
       } catch (err) {
-        alert('Watching job created! Check your Telegram chat.');
-        if (tg?.close) tg.close();
+        console.error('Job creation error:', err);
+        alert('❌ Failed to create job: Could not reach bot server. Please verify the Railway server is online or click Apply Changes in Railway dashboard.');
       }
     }
 
