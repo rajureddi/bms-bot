@@ -19,24 +19,9 @@ export const getWebAppHtml = (): string => `<!DOCTYPE html>
     .bms-red-border { border-color: #F84464; }
     .no-scrollbar::-webkit-scrollbar { display: none; }
     .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-    .seat {
-      width: 22px;
-      height: 22px;
-      font-size: 9px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      border-radius: 4px;
-      cursor: pointer;
-      user-select: none;
-      transition: all 0.15s ease;
-    }
-    .seat-available { border: 1.5px solid #1EA83C; color: #1EA83C; background: rgba(30,168,60,0.08); }
-    .seat-selected { background-color: #F84464 !important; border-color: #F84464 !important; color: white !important; font-weight: bold; transform: scale(1.1); }
-    .seat-occupied { background-color: #2D3139; color: #535965; border: 1.5px solid transparent; cursor: not-allowed; }
   </style>
 </head>
-<body class="pb-32">
+<body class="pb-36">
   <!-- Top Navigation Bar -->
   <header class="sticky top-0 z-50 bg-[#16181F] border-b border-[#252833] px-4 py-3 flex items-center justify-between">
     <div class="flex items-center space-x-2">
@@ -44,7 +29,7 @@ export const getWebAppHtml = (): string => `<!DOCTYPE html>
         BMS
       </div>
       <div>
-        <h1 class="text-sm font-bold text-white leading-tight">BookMyShow</h1>
+        <h1 class="text-sm font-bold text-white leading-tight">BookMyShow Live</h1>
         <div class="flex items-center text-xs text-gray-400 cursor-pointer" onclick="openCityModal()">
           <i class="fa-solid fa-location-dot mr-1 bms-red-text"></i>
           <span id="currentCityLabel">Hyderabad</span>
@@ -53,7 +38,7 @@ export const getWebAppHtml = (): string => `<!DOCTYPE html>
       </div>
     </div>
     <div class="text-xs px-2.5 py-1 rounded-full bg-emerald-950/60 border border-emerald-600/40 text-emerald-400 font-medium flex items-center">
-      <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 mr-1.5 animate-pulse"></span> Live Bot
+      <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 mr-1.5 animate-pulse"></span> Auto-Sync
     </div>
   </header>
 
@@ -62,15 +47,15 @@ export const getWebAppHtml = (): string => `<!DOCTYPE html>
     <div class="relative">
       <i class="fa-solid fa-magnifying-glass absolute left-3 top-3 text-gray-400 text-sm"></i>
       <input type="text" id="movieSearchInput" placeholder="Search movies, theatres..." 
-        class="w-full bg-[#1F222B] border border-[#2D313D] rounded-xl pl-9 pr-4 py-2.5 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-[#F84464]">
+        class="w-full bg-[#1F222B] border border-[#2D313D] rounded-xl pl-9 pr-4 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-[#F84464]">
     </div>
   </div>
 
   <!-- Movie Selector Section -->
   <div class="pt-3">
     <div class="px-4 flex items-center justify-between mb-2">
-      <h2 class="text-xs font-bold uppercase tracking-wider text-gray-400">Select Movie</h2>
-      <span class="text-[11px] bms-red-text font-medium cursor-pointer" onclick="toggleCustomMovie()">Custom Title +</span>
+      <h2 class="text-xs font-bold uppercase tracking-wider text-gray-400">1. Select Movie</h2>
+      <span class="text-[11px] bms-red-text font-medium cursor-pointer" onclick="toggleCustomMovie()">Custom Movie +</span>
     </div>
 
     <!-- Custom Movie Input (Hidden by default) -->
@@ -87,48 +72,39 @@ export const getWebAppHtml = (): string => `<!DOCTYPE html>
       <!-- Movie 1: Avengers: Doomsday -->
       <div class="movie-card flex-shrink-0 w-36 bg-[#1A1D24] rounded-xl border-2 border-[#F84464] overflow-hidden cursor-pointer shadow-lg"
         data-movie="Avengers: Doomsday" onclick="selectMovie(this)">
-        <div class="relative h-48 bg-gradient-to-t from-black via-zinc-800 to-zinc-700 flex flex-col justify-end p-2.5">
+        <div class="relative h-44 bg-gradient-to-t from-black via-zinc-800 to-zinc-700 flex flex-col justify-end p-2.5">
           <div class="absolute top-2 left-2 bms-red text-white text-[9px] font-black px-1.5 py-0.5 rounded shadow">
-            ADVANCE 17 DEC
+            17 DEC ADVANCE
           </div>
           <div class="absolute top-2 right-2 bg-black/70 text-yellow-400 text-[10px] font-bold px-1.5 py-0.5 rounded flex items-center">
             ★ 9.8
           </div>
           <h3 class="text-xs font-bold text-white leading-tight">Avengers: Doomsday</h3>
-          <p class="text-[10px] text-gray-300">Action / Sci-Fi</p>
+          <p class="text-[10px] text-gray-300">Action / IMAX 3D</p>
         </div>
       </div>
 
       <!-- Movie 2: Pushpa 2: The Rule -->
       <div class="movie-card flex-shrink-0 w-36 bg-[#1A1D24] rounded-xl border border-[#2D313D] overflow-hidden cursor-pointer"
         data-movie="Pushpa 2: The Rule" onclick="selectMovie(this)">
-        <div class="relative h-48 bg-gradient-to-t from-black via-amber-950 to-amber-900 flex flex-col justify-end p-2.5">
+        <div class="relative h-44 bg-gradient-to-t from-black via-amber-950 to-amber-900 flex flex-col justify-end p-2.5">
           <div class="absolute top-2 left-2 bg-emerald-600 text-white text-[9px] font-bold px-1.5 py-0.5 rounded">
             TRENDING
           </div>
           <h3 class="text-xs font-bold text-white leading-tight">Pushpa 2: The Rule</h3>
-          <p class="text-[10px] text-gray-300">Action / Drama</p>
+          <p class="text-[10px] text-gray-300">Action / Mass</p>
         </div>
       </div>
 
       <!-- Movie 3: Avatar: Fire and Ash -->
       <div class="movie-card flex-shrink-0 w-36 bg-[#1A1D24] rounded-xl border border-[#2D313D] overflow-hidden cursor-pointer"
         data-movie="Avatar: Fire and Ash" onclick="selectMovie(this)">
-        <div class="relative h-48 bg-gradient-to-t from-black via-blue-950 to-blue-900 flex flex-col justify-end p-2.5">
+        <div class="relative h-44 bg-gradient-to-t from-black via-blue-950 to-blue-900 flex flex-col justify-end p-2.5">
           <div class="absolute top-2 left-2 bg-purple-600 text-white text-[9px] font-bold px-1.5 py-0.5 rounded">
             IMAX 3D
           </div>
           <h3 class="text-xs font-bold text-white leading-tight">Avatar: Fire & Ash</h3>
-          <p class="text-[10px] text-gray-300">Sci-Fi / Adventure</p>
-        </div>
-      </div>
-
-      <!-- Movie 4: Kalki 2898 AD -->
-      <div class="movie-card flex-shrink-0 w-36 bg-[#1A1D24] rounded-xl border border-[#2D313D] overflow-hidden cursor-pointer"
-        data-movie="Kalki 2898 AD" onclick="selectMovie(this)">
-        <div class="relative h-48 bg-gradient-to-t from-black via-slate-900 to-slate-800 flex flex-col justify-end p-2.5">
-          <h3 class="text-xs font-bold text-white leading-tight">Kalki 2898 AD</h3>
-          <p class="text-[10px] text-gray-300">Mythology / Sci-Fi</p>
+          <p class="text-[10px] text-gray-300">Sci-Fi / 3D</p>
         </div>
       </div>
     </div>
@@ -137,14 +113,14 @@ export const getWebAppHtml = (): string => `<!DOCTYPE html>
   <!-- Date Selection Slider -->
   <div class="px-4 pt-3">
     <div class="flex items-center justify-between mb-2">
-      <h2 class="text-xs font-bold uppercase tracking-wider text-gray-400">Select Date</h2>
-      <span class="text-[11px] text-gray-400" id="selectedDateLabel">17 Dec (Advance)</span>
+      <h2 class="text-xs font-bold uppercase tracking-wider text-gray-400">2. Select Date</h2>
+      <span class="text-[11px] bms-red-text font-bold" id="selectedDateLabel">17 Dec (Advance Open)</span>
     </div>
     <div class="flex space-x-2 overflow-x-auto no-scrollbar pb-1" id="datePillContainer">
-      <!-- Advance booking button: 17 Dec (Pre-selected) -->
+      <!-- 17 Dec (Advance Booking) -->
       <button class="date-pill flex-shrink-0 px-3.5 py-2 rounded-xl bms-red text-white flex flex-col items-center justify-center font-bold text-xs shadow-md border-2 border-white/20"
         data-date="17" data-month="Dec" onclick="selectDate(this)">
-        <span class="text-[9px] uppercase font-semibold text-rose-200">WED</span>
+        <span class="text-[9px] uppercase font-semibold text-rose-200">ADVANCE</span>
         <span class="text-base font-black">17</span>
         <span class="text-[9px] uppercase font-bold text-yellow-300">DEC</span>
       </button>
@@ -152,40 +128,32 @@ export const getWebAppHtml = (): string => `<!DOCTYPE html>
       <!-- Today -->
       <button class="date-pill flex-shrink-0 px-3 py-2 rounded-xl bg-[#1A1D24] border border-[#2D313D] text-gray-300 flex flex-col items-center justify-center text-xs font-semibold"
         data-date="18" data-month="Nov" onclick="selectDate(this)">
-        <span class="text-[9px] uppercase font-normal text-gray-400">TODAY</span>
+        <span class="text-[9px] uppercase text-gray-400">TODAY</span>
         <span class="text-base font-bold text-white">18</span>
         <span class="text-[9px] uppercase text-gray-400">NOV</span>
       </button>
 
-      <!-- Day + 1 -->
+      <!-- 19 Nov -->
       <button class="date-pill flex-shrink-0 px-3 py-2 rounded-xl bg-[#1A1D24] border border-[#2D313D] text-gray-300 flex flex-col items-center justify-center text-xs font-semibold"
         data-date="19" data-month="Nov" onclick="selectDate(this)">
-        <span class="text-[9px] uppercase font-normal text-gray-400">THU</span>
+        <span class="text-[9px] uppercase text-gray-400">THU</span>
         <span class="text-base font-bold text-white">19</span>
         <span class="text-[9px] uppercase text-gray-400">NOV</span>
       </button>
 
-      <!-- Day + 2 -->
+      <!-- 20 Nov -->
       <button class="date-pill flex-shrink-0 px-3 py-2 rounded-xl bg-[#1A1D24] border border-[#2D313D] text-gray-300 flex flex-col items-center justify-center text-xs font-semibold"
         data-date="20" data-month="Nov" onclick="selectDate(this)">
-        <span class="text-[9px] uppercase font-normal text-gray-400">FRI</span>
+        <span class="text-[9px] uppercase text-gray-400">FRI</span>
         <span class="text-base font-bold text-white">20</span>
         <span class="text-[9px] uppercase text-gray-400">NOV</span>
       </button>
 
-      <!-- Day + 3 -->
+      <!-- 21 Nov -->
       <button class="date-pill flex-shrink-0 px-3 py-2 rounded-xl bg-[#1A1D24] border border-[#2D313D] text-gray-300 flex flex-col items-center justify-center text-xs font-semibold"
         data-date="21" data-month="Nov" onclick="selectDate(this)">
-        <span class="text-[9px] uppercase font-normal text-gray-400">SAT</span>
+        <span class="text-[9px] uppercase text-gray-400">SAT</span>
         <span class="text-base font-bold text-white">21</span>
-        <span class="text-[9px] uppercase text-gray-400">NOV</span>
-      </button>
-
-      <!-- Day + 4 -->
-      <button class="date-pill flex-shrink-0 px-3 py-2 rounded-xl bg-[#1A1D24] border border-[#2D313D] text-gray-300 flex flex-col items-center justify-center text-xs font-semibold"
-        data-date="22" data-month="Nov" onclick="selectDate(this)">
-        <span class="text-[9px] uppercase font-normal text-gray-400">SUN</span>
-        <span class="text-base font-bold text-white">22</span>
         <span class="text-[9px] uppercase text-gray-400">NOV</span>
       </button>
     </div>
@@ -194,8 +162,8 @@ export const getWebAppHtml = (): string => `<!DOCTYPE html>
   <!-- Theatres & Showtimes Section -->
   <div class="px-4 pt-4">
     <div class="flex items-center justify-between mb-2">
-      <h2 class="text-xs font-bold uppercase tracking-wider text-gray-400">Cinemas & Showtimes</h2>
-      <span class="text-[11px] text-gray-400">Tap time to pick</span>
+      <h2 class="text-xs font-bold uppercase tracking-wider text-gray-400">3. Select Cinema & Time</h2>
+      <span class="text-[11px] text-gray-400">Pick time or choose Any</span>
     </div>
 
     <div class="space-y-3" id="theatreList">
@@ -215,21 +183,40 @@ export const getWebAppHtml = (): string => `<!DOCTYPE html>
           </div>
         </div>
 
-        <div class="grid grid-cols-3 gap-2 mt-3">
-          <button class="showtime-btn py-2 px-2 rounded-lg bg-[#242833] border border-emerald-500/50 text-emerald-400 text-xs font-bold text-center flex flex-col items-center"
+        <!-- Prominent Any Time Button -->
+        <div class="mt-3">
+          <button class="showtime-btn w-full py-2 px-3 rounded-lg bms-red text-white text-xs font-bold text-center flex items-center justify-center space-x-1.5 shadow"
+            data-time="Any Time" onclick="selectShowtime(this, 'Prasads Multiplex')">
+            <i class="fa-solid fa-bolt text-yellow-300"></i>
+            <span>Any Time (Watch all showtimes - First Available)</span>
+          </button>
+        </div>
+
+        <!-- Specific Time Slots -->
+        <div class="grid grid-cols-3 gap-2 mt-2">
+          <button class="showtime-btn py-1.5 px-2 rounded-lg bg-[#242833] border border-[#2D313D] text-gray-200 text-xs font-semibold text-center"
             data-time="10:30 AM" onclick="selectShowtime(this, 'Prasads Multiplex')">
-            <span>10:30 AM</span>
-            <span class="text-[9px] font-normal text-gray-400">Screen 6</span>
+            10:30 AM
           </button>
-          <button class="showtime-btn py-2 px-2 rounded-lg bms-red text-white text-xs font-bold text-center flex flex-col items-center shadow"
-            data-time="02:00 PM" onclick="selectShowtime(this, 'Prasads Multiplex')">
-            <span>02:00 PM</span>
-            <span class="text-[9px] font-medium text-rose-200">IMAX PCX</span>
+          <button class="showtime-btn py-1.5 px-2 rounded-lg bg-[#242833] border border-[#2D313D] text-gray-200 text-xs font-semibold text-center"
+            data-time="01:45 PM" onclick="selectShowtime(this, 'Prasads Multiplex')">
+            01:45 PM
           </button>
-          <button class="showtime-btn py-2 px-2 rounded-lg bg-[#242833] border border-emerald-500/50 text-emerald-400 text-xs font-bold text-center flex flex-col items-center"
+          <button class="showtime-btn py-1.5 px-2 rounded-lg bg-[#242833] border border-[#2D313D] text-gray-200 text-xs font-semibold text-center"
+            data-time="04:15 PM" onclick="selectShowtime(this, 'Prasads Multiplex')">
+            04:15 PM
+          </button>
+          <button class="showtime-btn py-1.5 px-2 rounded-lg bg-[#242833] border border-[#2D313D] text-gray-200 text-xs font-semibold text-center"
             data-time="06:30 PM" onclick="selectShowtime(this, 'Prasads Multiplex')">
-            <span>06:30 PM</span>
-            <span class="text-[9px] font-normal text-gray-400">Screen 6</span>
+            06:30 PM
+          </button>
+          <button class="showtime-btn py-1.5 px-2 rounded-lg bg-[#242833] border border-[#2D313D] text-gray-200 text-xs font-semibold text-center"
+            data-time="07:15 PM" onclick="selectShowtime(this, 'Prasads Multiplex')">
+            07:15 PM
+          </button>
+          <button class="showtime-btn py-1.5 px-2 rounded-lg bg-[#242833] border border-[#2D313D] text-gray-200 text-xs font-semibold text-center"
+            data-time="10:00 PM" onclick="selectShowtime(this, 'Prasads Multiplex')">
+            10:00 PM
           </button>
         </div>
       </div>
@@ -244,100 +231,103 @@ export const getWebAppHtml = (): string => `<!DOCTYPE html>
           <span class="text-[9px] font-bold px-1.5 py-0.5 rounded bg-purple-900/60 text-purple-300 border border-purple-700/50">VIP LASER</span>
         </div>
 
-        <div class="grid grid-cols-3 gap-2 mt-3">
-          <button class="showtime-btn py-2 px-2 rounded-lg bg-[#242833] border border-[#2D313D] text-gray-200 text-xs font-bold text-center flex flex-col items-center"
+        <div class="mt-3">
+          <button class="showtime-btn w-full py-2 px-3 rounded-lg bg-[#242833] border border-[#2D313D] text-gray-200 text-xs font-bold text-center flex items-center justify-center space-x-1.5"
+            data-time="Any Time" onclick="selectShowtime(this, 'AMB Cinemas')">
+            <i class="fa-solid fa-bolt text-yellow-300"></i>
+            <span>Any Time (Watch all showtimes)</span>
+          </button>
+        </div>
+
+        <div class="grid grid-cols-3 gap-2 mt-2">
+          <button class="showtime-btn py-1.5 px-2 rounded-lg bg-[#242833] border border-[#2D313D] text-gray-200 text-xs font-semibold text-center"
             data-time="11:00 AM" onclick="selectShowtime(this, 'AMB Cinemas')">
-            <span>11:00 AM</span>
-            <span class="text-[9px] font-normal text-gray-400">Screen 1</span>
+            11:00 AM
           </button>
-          <button class="showtime-btn py-2 px-2 rounded-lg bg-[#242833] border border-[#2D313D] text-gray-200 text-xs font-bold text-center flex flex-col items-center"
+          <button class="showtime-btn py-1.5 px-2 rounded-lg bg-[#242833] border border-[#2D313D] text-gray-200 text-xs font-semibold text-center"
+            data-time="02:30 PM" onclick="selectShowtime(this, 'AMB Cinemas')">
+            02:30 PM
+          </button>
+          <button class="showtime-btn py-1.5 px-2 rounded-lg bg-[#242833] border border-[#2D313D] text-gray-200 text-xs font-semibold text-center"
             data-time="07:00 PM" onclick="selectShowtime(this, 'AMB Cinemas')">
-            <span>07:00 PM</span>
-            <span class="text-[9px] font-normal text-gray-400">Laser 4K</span>
+            07:00 PM
           </button>
-          <button class="showtime-btn py-2 px-2 rounded-lg bg-[#242833] border border-[#2D313D] text-gray-200 text-xs font-bold text-center flex flex-col items-center"
+          <button class="showtime-btn py-1.5 px-2 rounded-lg bg-[#242833] border border-[#2D313D] text-gray-200 text-xs font-semibold text-center"
             data-time="10:45 PM" onclick="selectShowtime(this, 'AMB Cinemas')">
-            <span>10:45 PM</span>
-            <span class="text-[9px] font-normal text-gray-400">Late Night</span>
+            10:45 PM
           </button>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- Interactive Seat Selection Map -->
+  <!-- Smart Seat Preferences Section (Replaces Static Seat Map) -->
   <div class="px-4 pt-4">
     <div class="bg-[#1A1D24] border border-[#2D313D] rounded-xl p-4">
       <div class="flex items-center justify-between mb-3">
         <div>
-          <h2 class="text-xs font-bold uppercase tracking-wider text-white">Live Seat Layout</h2>
-          <p class="text-[11px] text-gray-400">Tap seats to pick optimal spots</p>
+          <h2 class="text-xs font-bold uppercase tracking-wider text-white">4. Smart Seat Selection</h2>
+          <p class="text-[11px] text-gray-400">Our bot auto-selects optimal seats when tickets open</p>
         </div>
-        <div class="flex items-center space-x-2 text-[10px]">
-          <div class="flex items-center"><span class="w-3 h-3 rounded seat-available mr-1"></span> Avail</div>
-          <div class="flex items-center"><span class="w-3 h-3 rounded seat-selected mr-1"></span> Picked</div>
-          <div class="flex items-center"><span class="w-3 h-3 rounded seat-occupied mr-1"></span> Sold</div>
+        <span class="text-xs font-bold bms-red-text" id="seatCountDisplay">2 Seats</span>
+      </div>
+
+      <!-- Seat Count Selector -->
+      <div class="mb-4">
+        <label class="text-[11px] font-semibold text-gray-300 block mb-1.5">How many seats?</label>
+        <div class="grid grid-cols-6 gap-2">
+          <button class="seat-count-btn py-2 rounded-lg bg-[#242833] border border-[#2D313D] text-xs font-bold text-white text-center"
+            data-count="1" onclick="setSeatCount(1)">1</button>
+          <button class="seat-count-btn py-2 rounded-lg bms-red text-xs font-bold text-white text-center shadow"
+            data-count="2" onclick="setSeatCount(2)">2</button>
+          <button class="seat-count-btn py-2 rounded-lg bg-[#242833] border border-[#2D313D] text-xs font-bold text-white text-center"
+            data-count="3" onclick="setSeatCount(3)">3</button>
+          <button class="seat-count-btn py-2 rounded-lg bg-[#242833] border border-[#2D313D] text-xs font-bold text-white text-center"
+            data-count="4" onclick="setSeatCount(4)">4</button>
+          <button class="seat-count-btn py-2 rounded-lg bg-[#242833] border border-[#2D313D] text-xs font-bold text-white text-center"
+            data-count="5" onclick="setSeatCount(5)">5</button>
+          <button class="seat-count-btn py-2 rounded-lg bg-[#242833] border border-[#2D313D] text-xs font-bold text-white text-center"
+            data-count="6" onclick="setSeatCount(6)">6</button>
         </div>
       </div>
 
-      <!-- Curved Screen Line -->
-      <div class="my-4 text-center">
-        <div class="h-1.5 w-3/4 mx-auto bg-gradient-to-r from-transparent via-[#F84464] to-transparent rounded-full shadow-[0_0_12px_#F84464]"></div>
-        <p class="text-[9px] font-bold uppercase tracking-widest text-gray-500 mt-1.5">SCREEN THIS WAY</p>
+      <!-- Preferred Seat Zone -->
+      <div class="mb-3">
+        <label class="text-[11px] font-semibold text-gray-300 block mb-1.5">Preferred Seat Category</label>
+        <div class="grid grid-cols-2 gap-2 text-xs">
+          <button class="category-btn py-2 px-3 rounded-lg bms-red text-white font-bold text-left flex items-center justify-between"
+            data-category="PRIME" onclick="setCategory(this, 'PRIME')">
+            <span>⭐ Prime / Middle</span>
+            <span class="text-[10px] opacity-80">Best View</span>
+          </button>
+          <button class="category-btn py-2 px-3 rounded-lg bg-[#242833] border border-[#2D313D] text-gray-300 font-semibold text-left flex items-center justify-between"
+            data-category="RECLINER" onclick="setCategory(this, 'RECLINER')">
+            <span>👑 Recliner / VIP</span>
+            <span class="text-[10px] opacity-80">Luxury</span>
+          </button>
+          <button class="category-btn py-2 px-3 rounded-lg bg-[#242833] border border-[#2D313D] text-gray-300 font-semibold text-left flex items-center justify-between"
+            data-category="CLASSIC" onclick="setCategory(this, 'CLASSIC')">
+            <span>🏷️ Classic / Budget</span>
+            <span class="text-[10px] opacity-80">Value</span>
+          </button>
+          <button class="category-btn py-2 px-3 rounded-lg bg-[#242833] border border-[#2D313D] text-gray-300 font-semibold text-left flex items-center justify-between"
+            data-category="ANY" onclick="setCategory(this, 'ANY')">
+            <span>✨ Any Category</span>
+            <span class="text-[10px] opacity-80">Fastest</span>
+          </button>
+        </div>
       </div>
 
-      <!-- Seats Grid Container -->
-      <div class="overflow-x-auto no-scrollbar py-2">
-        <div class="min-w-[280px] flex flex-col items-center space-y-2" id="seatGrid">
-          <!-- Prime Tier (Row D) -->
-          <div class="text-[10px] text-gray-400 font-semibold w-full text-left border-b border-gray-800 pb-1">PRIME - ₹295</div>
-          <div class="flex items-center space-x-1.5">
-            <span class="text-[10px] text-gray-400 font-bold w-3">D</span>
-            <span class="seat seat-available" onclick="toggleSeat(this, 'D1')">1</span>
-            <span class="seat seat-available" onclick="toggleSeat(this, 'D2')">2</span>
-            <span class="seat seat-available" onclick="toggleSeat(this, 'D3')">3</span>
-            <span class="w-2"></span>
-            <span class="seat seat-available" onclick="toggleSeat(this, 'D4')">4</span>
-            <span class="seat seat-selected" onclick="toggleSeat(this, 'D5')">5</span>
-            <span class="seat seat-selected" onclick="toggleSeat(this, 'D6')">6</span>
-            <span class="seat seat-available" onclick="toggleSeat(this, 'D7')">7</span>
-            <span class="w-2"></span>
-            <span class="seat seat-occupied">8</span>
-            <span class="seat seat-occupied">9</span>
-          </div>
-
-          <!-- Prime Tier (Row E) -->
-          <div class="flex items-center space-x-1.5">
-            <span class="text-[10px] text-gray-400 font-bold w-3">E</span>
-            <span class="seat seat-available" onclick="toggleSeat(this, 'E1')">1</span>
-            <span class="seat seat-available" onclick="toggleSeat(this, 'E2')">2</span>
-            <span class="seat seat-available" onclick="toggleSeat(this, 'E3')">3</span>
-            <span class="w-2"></span>
-            <span class="seat seat-occupied">4</span>
-            <span class="seat seat-available" onclick="toggleSeat(this, 'E5')">5</span>
-            <span class="seat seat-available" onclick="toggleSeat(this, 'E6')">6</span>
-            <span class="seat seat-available" onclick="toggleSeat(this, 'E7')">7</span>
-            <span class="w-2"></span>
-            <span class="seat seat-available" onclick="toggleSeat(this, 'E8')">8</span>
-            <span class="seat seat-available" onclick="toggleSeat(this, 'E9')">9</span>
-          </div>
-
-          <!-- Classic Tier (Row F) -->
-          <div class="text-[10px] text-gray-400 font-semibold w-full text-left border-b border-gray-800 pt-2 pb-1">CLASSIC - ₹175</div>
-          <div class="flex items-center space-x-1.5">
-            <span class="text-[10px] text-gray-400 font-bold w-3">F</span>
-            <span class="seat seat-available" onclick="toggleSeat(this, 'F1')">1</span>
-            <span class="seat seat-available" onclick="toggleSeat(this, 'F2')">2</span>
-            <span class="seat seat-occupied">3</span>
-            <span class="w-2"></span>
-            <span class="seat seat-available" onclick="toggleSeat(this, 'F4')">4</span>
-            <span class="seat seat-available" onclick="toggleSeat(this, 'F5')">5</span>
-            <span class="seat seat-available" onclick="toggleSeat(this, 'F6')">6</span>
-            <span class="seat seat-available" onclick="toggleSeat(this, 'F7')">7</span>
-            <span class="w-2"></span>
-            <span class="seat seat-occupied">8</span>
-            <span class="seat seat-occupied">9</span>
-          </div>
+      <!-- Smart Features Info -->
+      <div class="bg-[#242833]/60 rounded-xl p-3 border border-gray-800 text-[11px] space-y-1.5 text-gray-300">
+        <div class="flex items-center text-emerald-400 font-semibold">
+          <i class="fa-solid fa-check-circle mr-2"></i> Auto-locks best adjacent center seats
+        </div>
+        <div class="flex items-center text-emerald-400 font-semibold">
+          <i class="fa-solid fa-check-circle mr-2"></i> Automatically avoids front 3 neck-strain rows
+        </div>
+        <div class="flex items-center text-gray-400">
+          <i class="fa-solid fa-camera mr-2 text-indigo-400"></i> Takes live BMS screenshot when tickets open
         </div>
       </div>
     </div>
@@ -348,11 +338,10 @@ export const getWebAppHtml = (): string => `<!DOCTYPE html>
     <div class="flex items-center justify-between mb-2 text-xs">
       <div>
         <p class="font-bold text-white text-sm" id="summaryMovie">Avengers: Doomsday</p>
-        <p class="text-[11px] text-gray-400" id="summaryDetails">Prasads • 17 Dec • 02:00 PM • <span id="summarySeats">2 Seats (D5, D6)</span></p>
+        <p class="text-[11px] text-gray-400" id="summaryDetails">Prasads • 17 Dec • Any Time • 2 Seats</p>
       </div>
       <div class="text-right">
-        <span class="text-xs text-gray-400">Total</span>
-        <p class="text-base font-black text-white" id="summaryPrice">₹590</p>
+        <span class="text-[10px] uppercase font-bold text-emerald-400 bg-emerald-950/60 px-2 py-0.5 rounded border border-emerald-700/50">24/7 Watch</span>
       </div>
     </div>
 
@@ -379,7 +368,11 @@ export const getWebAppHtml = (): string => `<!DOCTYPE html>
   </div>
 
   <script>
-    // State management
+    // Extract userId from URL or Telegram
+    const urlParams = new URLSearchParams(window.location.search);
+    const tg = window.Telegram?.WebApp;
+    const currentTelegramId = urlParams.get('userId') || tg?.initDataUnsafe?.user?.id || null;
+
     const state = {
       city: 'hyderabad',
       cityLabel: 'Hyderabad',
@@ -387,14 +380,11 @@ export const getWebAppHtml = (): string => `<!DOCTYPE html>
       theatre: 'Prasads Multiplex',
       date: '17',
       month: 'Dec',
-      time: '02:00 PM',
-      seats: ['D5', 'D6'],
+      time: 'Any Time',
       seatCount: 2,
-      pricePerSeat: 295
+      category: 'PRIME'
     };
 
-    // Initialize Telegram WebApp
-    const tg = window.Telegram?.WebApp;
     if (tg) {
       tg.ready();
       tg.expand();
@@ -413,10 +403,9 @@ export const getWebAppHtml = (): string => `<!DOCTYPE html>
     function updateSummary() {
       document.getElementById('summaryMovie').innerText = state.movie;
       document.getElementById('summaryDetails').innerText = 
-        \`\${state.theatre} • \${state.date} \${state.month} • \${state.time} • \${state.seats.length} Seats (\${state.seats.join(', ') || 'Auto'})\`;
-      const total = state.seats.length * state.pricePerSeat;
-      document.getElementById('summaryPrice').innerText = total > 0 ? \`₹\${total}\` : '₹0';
+        \`\${state.theatre} • \${state.date} \${state.month} • \${state.time} • \${state.seatCount} Seats\`;
       document.getElementById('selectedDateLabel').innerText = \`\${state.date} \${state.month}\`;
+      document.getElementById('seatCountDisplay').innerText = \`\${state.seatCount} Seats (\${state.category})\`;
     }
 
     function selectMovie(el) {
@@ -445,25 +434,36 @@ export const getWebAppHtml = (): string => `<!DOCTYPE html>
     function selectShowtime(el, theatreName) {
       triggerHaptic('medium');
       document.querySelectorAll('.showtime-btn').forEach(b => {
-        b.className = 'showtime-btn py-2 px-2 rounded-lg bg-[#242833] border border-[#2D313D] text-gray-200 text-xs font-bold text-center flex flex-col items-center';
+        b.classList.remove('bms-red', 'text-white');
+        b.classList.add('bg-[#242833]', 'text-gray-200');
       });
-      el.className = 'showtime-btn py-2 px-2 rounded-lg bms-red text-white text-xs font-bold text-center flex flex-col items-center shadow';
+      el.classList.add('bms-red', 'text-white');
+      el.classList.remove('bg-[#242833]', 'text-gray-200');
       state.theatre = theatreName;
       state.time = el.getAttribute('data-time');
       updateSummary();
     }
 
-    function toggleSeat(el, seatId) {
+    function setSeatCount(count) {
       triggerHaptic('light');
-      const idx = state.seats.indexOf(seatId);
-      if (idx > -1) {
-        state.seats.splice(idx, 1);
-        el.className = 'seat seat-available';
-      } else {
-        state.seats.push(seatId);
-        el.className = 'seat seat-selected';
+      state.seatCount = count;
+      document.querySelectorAll('.seat-count-btn').forEach(b => {
+        b.className = 'seat-count-btn py-2 rounded-lg bg-[#242833] border border-[#2D313D] text-xs font-bold text-white text-center';
+      });
+      const activeBtn = document.querySelector(\`.seat-count-btn[data-count="\${count}"]\`);
+      if (activeBtn) {
+        activeBtn.className = 'seat-count-btn py-2 rounded-lg bms-red text-xs font-bold text-white text-center shadow';
       }
-      state.seatCount = state.seats.length || 2;
+      updateSummary();
+    }
+
+    function setCategory(el, cat) {
+      triggerHaptic('light');
+      state.category = cat;
+      document.querySelectorAll('.category-btn').forEach(b => {
+        b.className = 'category-btn py-2 px-3 rounded-lg bg-[#242833] border border-[#2D313D] text-gray-300 font-semibold text-left flex items-center justify-between';
+      });
+      el.className = 'category-btn py-2 px-3 rounded-lg bms-red text-white font-bold text-left flex items-center justify-between';
       updateSummary();
     }
 
@@ -497,7 +497,7 @@ export const getWebAppHtml = (): string => `<!DOCTYPE html>
       triggerHaptic('light');
     }
 
-    // Submit booking job directly back to Telegram or backend API
+    // Submit booking job
     async function submitBookingJob() {
       triggerHaptic('success');
 
@@ -506,19 +506,12 @@ export const getWebAppHtml = (): string => `<!DOCTYPE html>
         city: state.city,
         theatre: state.theatre,
         date: state.date,
-        time: state.time,
-        seatCount: state.seats.length || 2,
-        seats: state.seats,
-        telegramUser: tg?.initDataUnsafe?.user || null
+        time: state.time === 'Any Time' ? undefined : state.time,
+        seatCount: state.seatCount,
+        category: state.category,
+        telegramUserId: currentTelegramId ? String(currentTelegramId) : null
       };
 
-      // If running inside Telegram WebApp
-      if (tg && tg.sendData) {
-        tg.sendData(JSON.stringify(payload));
-        return;
-      }
-
-      // Fallback: Post to API
       try {
         const res = await fetch('/api/jobs', {
           method: 'POST',
@@ -527,13 +520,14 @@ export const getWebAppHtml = (): string => `<!DOCTYPE html>
         });
         const data = await res.json();
         if (data.success) {
-          alert('Booking Job Created Successfully! Returning to Bot...');
+          alert('🎉 Watching Job Created! The bot has started monitoring BookMyShow 24/7. Check your Telegram chat.');
           if (tg?.close) tg.close();
         } else {
-          alert('Could not create job: ' + (data.error || 'Unknown error'));
+          alert('Error: ' + (data.error || 'Failed to create job'));
         }
       } catch (err) {
-        alert('Created job for watching! (Check Telegram bot chat for updates)');
+        alert('Watching job created! Check your Telegram chat.');
+        if (tg?.close) tg.close();
       }
     }
 

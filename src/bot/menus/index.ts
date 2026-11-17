@@ -52,7 +52,7 @@ async function editOrSend(
 
 export async function showMainMenu(ctx: MyContext): Promise<void> {
   const text = `*BMS Bot - Main Menu*\n\nWhat would you like to do?`;
-  await editOrSend(ctx, text, mainMenuKeyboard());
+  await editOrSend(ctx, text, mainMenuKeyboard(ctx.from?.id));
 }
 
 // ============ JOBS ============

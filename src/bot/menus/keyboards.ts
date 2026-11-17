@@ -4,10 +4,11 @@ import { config } from '../../utils/config.js';
 
 export const CITIES = ['hyderabad', 'bangalore', 'mumbai', 'delhi', 'chennai', 'kolkata', 'pune'];
 
-export function mainMenuKeyboard(): InlineKeyboard {
+export function mainMenuKeyboard(telegramId?: string | number): InlineKeyboard {
   const kb = new InlineKeyboard();
   if (config.appUrl) {
-    kb.webApp('🎬 Open BookMyShow App', config.appUrl).row();
+    const url = telegramId ? `${config.appUrl}?userId=${telegramId}` : config.appUrl;
+    kb.webApp('🎬 Open BookMyShow App', url).row();
   }
   return kb
     .text('New Job', 'menu:newjob')

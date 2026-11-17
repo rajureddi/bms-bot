@@ -49,7 +49,8 @@ export async function createServer(): Promise<FastifyInstance> {
         date?: string;
         time?: string;
         seatCount?: number;
-        seats?: string[];
+        category?: string;
+        telegramUserId?: string;
         telegramUser?: { id: number; first_name?: string; username?: string };
       };
 
@@ -57,9 +58,18 @@ export async function createServer(): Promise<FastifyInstance> {
       const city = (body.city || 'hyderabad').toLowerCase();
       const theatre = body.theatre || 'Prasads Multiplex';
       const date = body.date || '17';
-      const time = body.time || '02:00 PM';
+      const time = body.time === 'Any Time' ? undefined : body.time;
       const seatCount = body.seatCount || 2;
-      const telegramId = body.telegramUser?.id?.toString() || 'webapp_user';
+
+      // Identify user: from request, or fallback to the latest registered user in database
+      let telegramId = body.telegramUserId || body.telegramUser?.id?.toString();
+      if (!telegramId || telegramId === 'webapp_user') {
+        const { prisma } = await import('../db/client.js');
+        const latestUser = await prisma.user.findFirst({
+          orderBy: { updatedAt: 'desc' },
+        });
+        telegramId = latestUser ? latestUser.telegramId : '647187240';
+      }
 
       const user = await userService.getOrCreate(telegramId);
 
@@ -85,7 +95,7 @@ export async function createServer(): Promise<FastifyInstance> {
         theatres: [theatre],
         showtimePrefs: {
           preferredDates: [date],
-          preferredTimes: [time],
+          preferredTimes: time ? [time] : undefined,
         },
         seatPrefs: {
           count: seatCount,
@@ -101,13 +111,25 @@ export async function createServer(): Promise<FastifyInstance> {
         { jobId: `watch-${job.id}-${Date.now()}`, delay: 1000 }
       ).catch((err) => logger.warn('Failed to enqueue watch job from API', { error: String(err) }));
 
-      if (telegramId !== 'webapp_user') {
-        await notificationService.notify(telegramId, {
-          type: 'job_created',
-          jobId: job.id,
-          movieName,
-          theatre,
-        }).catch(() => {});
+      // Send Telegram confirmation card directly to the user
+      try {
+        const { bot } = await import('../bot/index.js');
+        await bot.api.sendMessage(
+          telegramId,
+          `🎬 *Booking Job Created from BMS App!*\n\n` +
+          `Job ID: \`${job.id.substring(0, 8)}\`\n` +
+          `Movie: *${movieName}*\n` +
+          `City: *${city}*\n` +
+          `Theatre: *${theatre}*\n` +
+          `Date: *${date} Dec / Selected*\n` +
+          `Time: *${time || 'Any Time (All Shows)'}*\n` +
+          `Seats: *${seatCount} Seats (Center & Adjacent Preferred)*\n\n` +
+          `🚀 *Monitoring BookMyShow 24/7!*\n` +
+          `You will receive an instant notification when tickets open. Use /myjobs to view your active jobs.`,
+          { parse_mode: 'Markdown' }
+        );
+      } catch (err) {
+        logger.warn('Failed to send Telegram message from API', { error: String(err) });
       }
 
       return reply.send({ success: true, jobId: job.id });
