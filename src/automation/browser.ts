@@ -29,7 +29,15 @@ export async function launchBrowser(
 
     const opts = { ...DEFAULT_OPTIONS, ...options };
 
-    // Check HEADLESS env var
+    // Default to headless in production or Linux environments without a display server (e.g. Docker/Railway)
+    const isProductionOrNoDisplay =
+      process.env.NODE_ENV === 'production' ||
+      (process.platform === 'linux' && !process.env.DISPLAY);
+
+    if (isProductionOrNoDisplay || process.env.HEADLESS === 'true') {
+      opts.headless = true;
+    }
+
     if (process.env.HEADLESS === 'false') {
       opts.headless = false;
     }

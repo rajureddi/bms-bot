@@ -176,7 +176,8 @@ export class ShowtimesPage extends BasePage {
   }
 
   private async isTheatreVisible(theatreName: string): Promise<boolean> {
-    const theatreRow = this.page.locator('.ReactVirtualized__Grid').locator(`text=${theatreName}`).first();
+    const cleanName = (theatreName.split(':')[0] || theatreName).trim();
+    const theatreRow = this.page.locator('.ReactVirtualized__Grid, body').locator(`text=${cleanName}`).first();
     return theatreRow.isVisible().catch(() => false);
   }
 
@@ -438,22 +439,24 @@ export class ShowtimesPage extends BasePage {
       await this.page.waitForTimeout(2000);
 
       // Find theatre row by looking for the cinema name span containing the theatre name
-      const theatreRow = this.page
+      const cleanName = (theatreName.split(':')[0] || theatreName).trim();
+      let theatreRow = this.page
         .locator('[class*="sc-e8nk8f-3"]')
-        .filter({ hasText: new RegExp(theatreName, 'i') })
+        .filter({ hasText: new RegExp(cleanName, 'i') })
         .first();
 
-      const exists = (await theatreRow.count()) > 0;
+      let exists = (await theatreRow.count()) > 0;
       if (!exists) {
         // Try alternative approach - look for any element with theatre name
         logger.debug('Theatre row not found with primary selector, trying fallback');
-        const fallbackRow = this.page
+        theatreRow = this.page
           .locator('div')
-          .filter({ hasText: new RegExp(theatreName, 'i') })
+          .filter({ hasText: new RegExp(cleanName, 'i') })
           .first();
 
-        if ((await fallbackRow.count()) === 0) {
-          logger.warn('Theatre not found', { theatreName });
+        exists = (await theatreRow.count()) > 0;
+        if (!exists) {
+          logger.warn('Theatre not found', { theatreName, cleanName });
           return false;
         }
       }

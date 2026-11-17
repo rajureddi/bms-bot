@@ -2,6 +2,7 @@ import { CommandContext, Context, InlineKeyboard } from 'grammy';
 import { JobStatus } from '@prisma/client';
 import { jobService } from '../../worker/jobService.js';
 import { notificationService } from '../../worker/notificationService.js';
+import { watchQueue } from '../../worker/queues.js';
 import { userService } from '../../services/userService.js';
 import { logger } from '../../utils/logger.js';
 import { MyContext, JobDraft } from '../index.js';
@@ -183,6 +184,13 @@ export async function quickJobCommand(ctx: CommandContext<Context>): Promise<voi
       movieName,
       theatre,
     });
+
+    // Enqueue immediately for watching
+    await watchQueue.add(
+      `watch-${job.id}`,
+      { jobId: job.id },
+      { jobId: `watch-${job.id}-${Date.now()}`, delay: 1000 }
+    ).catch(err => logger.warn('Failed to immediately enqueue watch job', { error: String(err) }));
 
     const watchUntilStr = watchUntil.toLocaleString('en-IN', {
       dateStyle: 'medium',
@@ -685,6 +693,13 @@ export async function handleSeatsCallback(ctx: MyContext): Promise<void> {
       movieName: draft.movieName,
       theatre: draft.theatres?.join(', '),
     });
+
+    // Enqueue immediately for watching
+    await watchQueue.add(
+      `watch-${job.id}`,
+      { jobId: job.id },
+      { jobId: `watch-${job.id}-${Date.now()}`, delay: 1000 }
+    ).catch(err => logger.warn('Failed to immediately enqueue watch job', { error: String(err) }));
 
     // Update the message with job details
     const watchUntilStr = watchUntil.toLocaleString('en-IN', {
