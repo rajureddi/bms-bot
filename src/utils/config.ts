@@ -34,7 +34,19 @@ function loadConfig(): Config {
     telegramBotToken: process.env.TELEGRAM_BOT_TOKEN,
     encryptionKey: process.env.ENCRYPTION_KEY,
     jwtSecret: process.env.JWT_SECRET,
-    appUrl: process.env.APP_URL || (process.env.RAILWAY_PUBLIC_DOMAIN ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}` : undefined),
+    appUrl: (() => {
+      let raw = process.env.APP_URL || (process.env.RAILWAY_PUBLIC_DOMAIN ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}` : undefined);
+      if (raw) {
+        raw = raw.trim();
+        if (!raw.startsWith('https://')) {
+          raw = raw.replace(/^http:\/\//, 'https://');
+          if (!raw.startsWith('https://')) {
+            raw = `https://${raw}`;
+          }
+        }
+      }
+      return raw;
+    })(),
   });
 
   if (!result.success) {

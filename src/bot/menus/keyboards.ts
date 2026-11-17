@@ -7,8 +7,20 @@ export const CITIES = ['hyderabad', 'bangalore', 'mumbai', 'delhi', 'chennai', '
 export function mainMenuKeyboard(telegramId?: string | number): InlineKeyboard {
   const kb = new InlineKeyboard();
   if (config.appUrl) {
-    const url = telegramId ? `${config.appUrl}?userId=${telegramId}` : config.appUrl;
-    kb.webApp('🎬 Open BookMyShow App', url).row();
+    try {
+      let raw = config.appUrl.trim();
+      if (!raw.startsWith('https://')) {
+        raw = raw.replace(/^http:\/\//, 'https://');
+        if (!raw.startsWith('https://')) {
+          raw = `https://${raw}`;
+        }
+      }
+      const url = telegramId ? `${raw}?userId=${telegramId}` : raw;
+      new URL(url); // Validates format
+      kb.webApp('🎬 Open BookMyShow App', url).row();
+    } catch {
+      // Invalid URL, skip webApp button to avoid Telegram API 400 Bad Request
+    }
   }
   return kb
     .text('New Job', 'menu:newjob')
