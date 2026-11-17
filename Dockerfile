@@ -18,6 +18,9 @@ RUN apt-get update && apt-get install -y \
 
 WORKDIR /app
 
+# Ensure Playwright browser is stored in a shared directory accessible by all users
+ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
+
 # Copy package files
 COPY package.json yarn.lock ./
 
@@ -33,8 +36,9 @@ RUN yarn db:generate
 # Build TypeScript
 RUN yarn build
 
-# Install Playwright browsers
-RUN npx playwright install chromium
+# Install Playwright browser and dependencies globally
+RUN npx playwright install --with-deps chromium && \
+    chmod -R 777 /ms-playwright
 
 # Run as non-root user
 RUN useradd -m appuser && chown -R appuser:appuser /app
